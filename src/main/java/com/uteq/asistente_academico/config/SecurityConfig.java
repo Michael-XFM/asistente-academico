@@ -37,7 +37,13 @@ public class SecurityConfig {
                         .contentTypeOptions(contentTypeOptions -> {})
                         .frameOptions(frameOptions -> frameOptions.deny())
                         .contentSecurityPolicy(csp -> csp
-                                .policyDirectives("default-src 'self'; frame-ancestors 'none'"))
+                                .policyDirectives(
+                                        "default-src 'self'; " +
+                                                "frame-ancestors 'none'; " +
+                                                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                                                "font-src 'self' https://fonts.gstatic.com; " +
+                                                "script-src 'self' 'unsafe-inline'"
+                                ))
                         // HSTS solo tiene efecto real sobre HTTPS; se declara
                         // igual para cuando el sistema tenga TLS (ver A02,
                         // pendiente en esta entrega — ver docs/mediciones/sec/).

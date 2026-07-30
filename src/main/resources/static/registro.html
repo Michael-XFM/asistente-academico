@@ -4,64 +4,247 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro - Asistente Virtual Académico</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        body {
-            background: linear-gradient(135deg, #1a3a6b, #2196F3);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        :root{
+            --bg:#F4FBF6;
+            --card:#FFFFFF;
+            --green:#1F9D5C;
+            --green-dark:#146B3F;
+            --green-pale:#E7F6EC;
+            --ink:#16241C;
+            --muted:#6B8577;
+            --gold:#F5B942;
+            --error:#C0392B;
+            --error-bg:#FBEAE8;
+            --success:#146B3F;
+            --success-bg:#E7F6EC;
         }
-        .card {
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            width: 100%;
-            max-width: 400px;
+        *{box-sizing:border-box;}
+        html,body{height:100%;}
+        body{
+            margin:0;
+            font-family:'Inter',sans-serif;
+            color:var(--ink);
+            background:var(--bg);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:2rem 1rem;
+            position:relative;
+            overflow:hidden;
         }
-        .btn-primary {
-            background: #2196F3;
-            border: none;
-            padding: 12px;
-            font-size: 16px;
+
+        .blob{
+            position:absolute;
+            border-radius:50%;
+            filter:blur(2px);
+            opacity:.5;
+            z-index:0;
         }
-        .btn-primary:hover {
-            background: #1a3a6b;
+        .blob-1{ width:340px; height:340px; background:radial-gradient(circle at 30% 30%, #CDEFDA, transparent 70%); top:-120px; left:-100px; }
+        .blob-2{ width:280px; height:280px; background:radial-gradient(circle at 60% 40%, #FCE8BE, transparent 70%); bottom:-100px; right:-80px; }
+        .blob-3{ width:160px; height:160px; background:radial-gradient(circle at 50% 50%, #CDEFDA, transparent 75%); top:55%; right:6%; }
+
+        .wrap{
+            position:relative;
+            z-index:1;
+            width:100%;
+            max-width:400px;
         }
-        #mensaje {
-            display: none;
+
+        .mark{
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            margin-bottom:1.6rem;
+        }
+        .mark svg{width:52px;height:52px;}
+        .mark .name{
+            margin-top:.6rem;
+            font-family:'Poppins',sans-serif;
+            font-weight:700;
+            font-size:1rem;
+            color:var(--green-dark);
+            letter-spacing:.02em;
+        }
+        .mark .name span{ color:var(--gold); }
+
+        .card{
+            background:var(--card);
+            border-radius:20px;
+            box-shadow:0 24px 60px rgba(20,107,63,.14);
+            padding:2.4rem 2.2rem 2rem;
+        }
+        .card h1{
+            font-family:'Poppins',sans-serif;
+            font-weight:700;
+            font-size:1.5rem;
+            margin:0 0 .3rem;
+            text-align:center;
+        }
+        .card .lede{
+            color:var(--muted);
+            font-size:.9rem;
+            margin:0 0 1.6rem;
+            text-align:center;
+        }
+
+        label{
+            display:block;
+            font-size:.78rem;
+            font-weight:600;
+            color:var(--ink);
+            margin-bottom:.4rem;
+        }
+        .field{margin-bottom:1rem; position:relative;}
+        .field .icon{
+            position:absolute;
+            left:.85rem;
+            top:2.15rem;
+            width:16px;
+            height:16px;
+            color:#9DB2A6;
+            pointer-events:none;
+        }
+        input, select{
+            width:100%;
+            border:1.5px solid #E1EBE4;
+            border-radius:10px;
+            background:#FBFDFB;
+            padding:.72rem .85rem .72rem 2.5rem;
+            font-family:'Inter',sans-serif;
+            font-size:.95rem;
+            color:var(--ink);
+            outline:none;
+            transition:border-color .15s ease, background .15s ease;
+        }
+        input::placeholder{color:#A8B8AE;}
+        input:focus, select:focus{border-color:var(--green); background:#fff;}
+        select{
+            appearance:none;
+            background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B8577' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat:no-repeat;
+            background-position:right .9rem center;
+            padding-right:2.2rem;
+            color:var(--ink);
+        }
+        select:invalid{color:#A8B8AE;}
+
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus{
+            -webkit-box-shadow:0 0 0 1000px #FBFDFB inset;
+            -webkit-text-fill-color:var(--ink);
+            transition:background-color 999999s ease-in-out 0s;
+        }
+
+        button.submit{
+            width:100%;
+            background:linear-gradient(135deg, var(--green), var(--green-dark));
+            color:#fff;
+            border:none;
+            border-radius:10px;
+            padding:.85rem 1rem;
+            font-family:'Poppins',sans-serif;
+            font-size:.95rem;
+            font-weight:600;
+            cursor:pointer;
+            margin-top:.3rem;
+            transition:filter .15s ease, transform .1s ease;
+        }
+        button.submit:hover{filter:brightness(1.06);}
+        button.submit:active{transform:scale(.99);}
+        button.submit:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+
+        #mensaje{
+            display:none;
+            font-size:.85rem;
+            padding:.65rem .85rem;
+            border-radius:8px;
+            margin-bottom:1rem;
+            background:var(--error-bg);
+            color:var(--error);
+            border:1px solid rgba(192,57,43,.2);
+        }
+        #mensaje.success{
+            background:var(--success-bg);
+            color:var(--success);
+            border:1px solid rgba(20,107,63,.2);
+        }
+
+        .switch{
+            margin-top:1.4rem;
+            font-size:.87rem;
+            color:var(--muted);
+            text-align:center;
+        }
+        .switch a{color:var(--green-dark);font-weight:600;text-decoration:none;}
+        .switch a:hover{text-decoration:underline;}
+
+        @media (max-width:480px){
+            .card{padding:2rem 1.4rem 1.8rem;}
         }
     </style>
 </head>
 <body>
-<div class="card p-4">
-    <div class="text-center mb-4">
-        <h4 class="fw-bold">Crear cuenta</h4>
-        <p class="text-muted">Completa tus datos para registrarte</p>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<div class="wrap">
+    <div class="mark">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M32 10 58 21 32 32 6 21 32 10Z" fill="#1F9D5C"/>
+            <path d="M17 26v10c0 4 7 8 15 8s15-4 15-8V26" stroke="#146B3F" stroke-width="2.4" stroke-linecap="round"/>
+            <circle cx="54" cy="24" r="2.2" fill="#146B3F"/>
+            <path d="M54 24v9" stroke="#146B3F" stroke-width="2" stroke-linecap="round"/>
+            <rect x="20" y="42" width="24" height="15" rx="7.5" fill="#F5B942"/>
+            <circle cx="27" cy="49.5" r="1.6" fill="#7A5A0E"/>
+            <circle cx="32" cy="49.5" r="1.6" fill="#7A5A0E"/>
+            <circle cx="37" cy="49.5" r="1.6" fill="#7A5A0E"/>
+        </svg>
+        <div class="name">Asistente Virtual <span>Académico</span></div>
     </div>
-    <div class="mb-3">
-        <label class="form-label">Nombre completo</label>
-        <input type="text" class="form-control" id="nombre" placeholder="Juan Pérez García">
+
+    <div class="card">
+        <h1>Crear cuenta</h1>
+        <p class="lede">Completa tus datos para registrarte.</p>
+
+        <div id="mensaje" role="alert"></div>
+
+        <div class="field">
+            <label for="nombre">Nombre completo</label>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20c1.5-4 4.5-6 7.5-6s6 2 7.5 6"/></svg>
+            <input type="text" id="nombre" placeholder="Juan Pérez García" autocomplete="name">
+        </div>
+        <div class="field">
+            <label for="email">Correo electrónico</label>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg>
+            <input type="email" id="email" placeholder="usuario@uteq.edu.ec" autocomplete="username">
+        </div>
+        <div class="field">
+            <label for="contrasena">Contraseña</label>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>
+            <input type="password" id="contrasena" placeholder="••••••••" autocomplete="new-password">
+        </div>
+        <div class="field">
+            <label for="rol">Rol</label>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V6a2 2 0 0 1 2-2h9l5 5v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 4v5h5"/></svg>
+            <select id="rol">
+                <option value="">Selecciona tu rol</option>
+                <option value="estudiante">Estudiante</option>
+                <option value="docente">Docente</option>
+            </select>
+        </div>
+
+        <button class="submit" onclick="registro()">Registrarse</button>
+
+        <p class="switch">¿Ya tienes cuenta? <a href="index.html">Inicia sesión</a></p>
     </div>
-    <div class="mb-3">
-        <label class="form-label">Correo electrónico</label>
-        <input type="email" class="form-control" id="email" placeholder="usuario@uteq.edu.ec">
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Contraseña</label>
-        <input type="password" class="form-control" id="contrasena" placeholder="••••••••">
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Rol</label>
-        <select class="form-select" id="rol">
-            <option value="">Selecciona tu rol</option>
-            <option value="estudiante">Estudiante</option>
-            <option value="docente">Docente</option>
-        </select>
-    </div>
-    <div id="mensaje" class="alert" role="alert"></div>
-    <button class="btn btn-primary w-100 mb-3" onclick="registro()">Registrarse</button>
-    <p class="text-center text-muted">¿Ya tienes cuenta? <a href="index.html">Inicia sesión</a></p>
 </div>
 
 <script>
@@ -73,7 +256,7 @@
         const mensaje = document.getElementById('mensaje');
 
         try {
-            const response = await fetch('http://localhost:8080/api/auth/registro', {
+            const response = await fetch('/api/auth/registro', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ nombre, email, contrasena, rol })
@@ -83,18 +266,18 @@
 
             if (response.ok) {
                 mensaje.style.display = 'block';
-                mensaje.className = 'alert alert-success';
+                mensaje.className = 'success';
                 mensaje.textContent = 'Usuario registrado exitosamente. Redirigiendo...';
                 setTimeout(() => window.location.href = 'index.html', 2000);
             } else {
                 mensaje.style.display = 'block';
-                mensaje.className = 'alert alert-danger';
-                mensaje.textContent = data;
+                mensaje.className = '';
+                mensaje.textContent = data.detail || 'No se pudo completar el registro.';
             }
         } catch (error) {
             mensaje.style.display = 'block';
-            mensaje.className = 'alert alert-danger';
-            mensaje.textContent = 'Error de conexión con el servidor';
+            mensaje.className = '';
+            mensaje.textContent = 'Error de conexión con el servidor.';
         }
     }
 </script>
