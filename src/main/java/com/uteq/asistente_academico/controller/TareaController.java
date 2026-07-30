@@ -22,6 +22,10 @@ import java.util.Optional;
  * resuelven contra el usuario autenticado (JWT), nunca contra un id
  * enviado por el cliente, siguiendo el mismo patron que
  * DashboardController.
+ *
+ * Distincion 404 vs 403: si la tarea no existe -> 404. Si existe pero
+ * pertenece a otro usuario -> 403 Forbidden (evidencia exigida por el
+ * Bloque C.2, control OWASP A01).
  */
 @RestController
 @RequestMapping("/api/tareas")
@@ -49,15 +53,19 @@ public class TareaController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Tarea> buscarPorId(Authentication authentication, @PathVariable Integer id) {
+    public ResponseEntity<?> buscarPorId(Authentication authentication, @PathVariable Integer id) {
         Optional<Usuario> usuarioOpt = resolverUsuarioAutenticado(authentication);
         if (usuarioOpt.isEmpty()) {
             return ResponseEntity.status(404).build();
         }
-        return tareaRepository.findById(id)
-                .filter(t -> perteneceAlUsuario(t, usuarioOpt.get()))
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        Optional<Tarea> tareaOpt = tareaRepository.findById(id);
+        if (tareaOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        if (!perteneceAlUsuario(tareaOpt.get(), usuarioOpt.get())) {
+            return ResponseEntity.status(403).body("No tienes permiso para ver esta tarea");
+        }
+        return ResponseEntity.ok(tareaOpt.get());
     }
 
     @PostMapping
@@ -73,20 +81,23 @@ public class TareaController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Tarea> actualizar(Authentication authentication, @PathVariable Integer id, @RequestBody Tarea tarea) {
+    public ResponseEntity<?> actualizar(Authentication authentication, @PathVariable Integer id, @RequestBody Tarea tarea) {
         Optional<Usuario> usuarioOpt = resolverUsuarioAutenticado(authentication);
         if (usuarioOpt.isEmpty()) {
             return ResponseEntity.status(404).build();
         }
-        return tareaRepository.findById(id)
-                .filter(t -> perteneceAlUsuario(t, usuarioOpt.get()))
-                .map(t -> {
-                    t.setTitulo(tarea.getTitulo());
-                    t.setDescripcion(tarea.getDescripcion());
-                    t.setFechaEntrega(tarea.getFechaEntrega());
-                    return ResponseEntity.ok(tareaRepository.save(t));
-                })
-                .orElse(ResponseEntity.notFound().build());
+        Optional<Tarea> tareaOpt = tareaRepository.findById(id);
+        if (tareaOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        if (!perteneceAlUsuario(tareaOpt.get(), usuarioOpt.get())) {
+            return ResponseEntity.status(403).body("No tienes permiso para editar esta tarea");
+        }
+        Tarea t = tareaOpt.get();
+        t.setTitulo(tarea.getTitulo());
+        t.setDescripcion(tarea.getDescripcion());
+        t.setFechaEntrega(tarea.getFechaEntrega());
+        return ResponseEntity.ok(tareaRepository.save(t));
     }
 
     @DeleteMapping("/{id}")
@@ -95,13 +106,15 @@ public class TareaController {
         if (usuarioOpt.isEmpty()) {
             return ResponseEntity.status(404).build();
         }
-        return tareaRepository.findById(id)
-                .filter(t -> perteneceAlUsuario(t, usuarioOpt.get()))
-                .map(t -> {
-                    tareaRepository.delete(t);
-                    return ResponseEntity.ok().build();
-                })
-                .orElse(ResponseEntity.notFound().build());
+        Optional<Tarea> tareaOpt = tareaRepository.findById(id);
+        if (tareaOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        if (!perteneceAlUsuario(tareaOpt.get(), usuarioOpt.get())) {
+            return ResponseEntity.status(403).body("No tienes permiso para eliminar esta tarea");
+        }
+        tareaRepository.delete(tareaOpt.get());
+        return ResponseEntity.ok().build();
     }
 
     private boolean perteneceAlUsuario(Tarea tarea, Usuario usuario) {

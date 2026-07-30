@@ -28,8 +28,25 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 <span class="fc" id="L28">                        .requestMatchers(&quot;/*.html&quot;, &quot;/css/**&quot;, &quot;/js/**&quot;, &quot;/index.html&quot;).permitAll()</span>
 <span class="fc" id="L29">                        .anyRequest().authenticated()</span>
                 )
-<span class="fc" id="L31">                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);</span>
-<span class="fc" id="L32">        return http.build();</span>
+                // OWASP A05 (mala configuracion de seguridad): cabeceras
+                // explicitas de defensa en profundidad. X-Content-Type-Options
+                // y X-Frame-Options ya vienen activas por defecto en Spring
+                // Security, se dejan explicitas aqui para que quede
+                // documentado en el codigo, no solo &quot;porque asi viene&quot;.
+<span class="fc" id="L36">                .headers(headers -&gt; headers</span>
+<span class="fc" id="L37">                        .contentTypeOptions(contentTypeOptions -&gt; {})</span>
+<span class="fc" id="L38">                        .frameOptions(frameOptions -&gt; frameOptions.deny())</span>
+<span class="fc" id="L39">                        .contentSecurityPolicy(csp -&gt; csp</span>
+<span class="fc" id="L40">                                .policyDirectives(&quot;default-src 'self'; frame-ancestors 'none'&quot;))</span>
+                        // HSTS solo tiene efecto real sobre HTTPS; se declara
+                        // igual para cuando el sistema tenga TLS (ver A02,
+                        // pendiente en esta entrega — ver docs/mediciones/sec/).
+<span class="fc" id="L44">                        .httpStrictTransportSecurity(hsts -&gt; hsts</span>
+<span class="fc" id="L45">                                .includeSubDomains(true)</span>
+<span class="fc" id="L46">                                .maxAgeInSeconds(31536000))</span>
+                )
+<span class="fc" id="L48">                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);</span>
+<span class="fc" id="L49">        return http.build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

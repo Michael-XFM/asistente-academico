@@ -29,7 +29,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * camino feliz") que el controlador original no filtraba por usuario:
  * cualquiera podia ver/editar/borrar tareas de otro usuario (OWASP A01
  * - control de acceso roto). Estas pruebas verifican explicitamente
- * ese aislamiento, no solo que los endpoints respondan 200.
+ * ese aislamiento: 404 cuando la tarea no existe, 403 cuando existe
+ * pero pertenece a otro usuario (evidencia exigida por el Bloque C.2).
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -37,9 +38,6 @@ class TareaControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Autowired
     private UsuarioService usuarioService;
@@ -131,14 +129,21 @@ class TareaControllerTest {
     }
 
     @Test
-    void usuarioBNoPuedeVerTareaDeUsuarioA() throws Exception {
-        mockMvc.perform(get("/api/tareas/" + tareaDeA.getIdTarea())
-                        .header("Authorization", "Bearer " + tokenB))
+    void tareaInexistenteDevuelve404() throws Exception {
+        mockMvc.perform(get("/api/tareas/999999")
+                        .header("Authorization", "Bearer " + tokenA))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    void usuarioBNoPuedeEditarTareaDeUsuarioA() throws Exception {
+    void usuarioBNoPuedeVerTareaDeUsuarioADevuelve403() throws Exception {
+        mockMvc.perform(get("/api/tareas/" + tareaDeA.getIdTarea())
+                        .header("Authorization", "Bearer " + tokenB))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void usuarioBNoPuedeEditarTareaDeUsuarioADevuelve403() throws Exception {
         String body = """
                 {"titulo":"Hackeada","descripcion":"intento no autorizado","fechaEntrega":"2026-01-01"}
                 """;
@@ -147,7 +152,7 @@ class TareaControllerTest {
                         .header("Authorization", "Bearer " + tokenB)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isForbidden());
 
         // Confirmamos que el titulo original de A no cambio
         mockMvc.perform(get("/api/tareas/" + tareaDeA.getIdTarea())
@@ -156,10 +161,10 @@ class TareaControllerTest {
     }
 
     @Test
-    void usuarioBNoPuedeEliminarTareaDeUsuarioA() throws Exception {
+    void usuarioBNoPuedeEliminarTareaDeUsuarioADevuelve403() throws Exception {
         mockMvc.perform(delete("/api/tareas/" + tareaDeA.getIdTarea())
                         .header("Authorization", "Bearer " + tokenB))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isForbidden());
 
         // La tarea de A sigue existiendo
         mockMvc.perform(get("/api/tareas/" + tareaDeA.getIdTarea())

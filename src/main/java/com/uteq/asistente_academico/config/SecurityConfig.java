@@ -28,6 +28,23 @@ public class SecurityConfig {
                         .requestMatchers("/*.html", "/css/**", "/js/**", "/index.html").permitAll()
                         .anyRequest().authenticated()
                 )
+                // OWASP A05 (mala configuracion de seguridad): cabeceras
+                // explicitas de defensa en profundidad. X-Content-Type-Options
+                // y X-Frame-Options ya vienen activas por defecto en Spring
+                // Security, se dejan explicitas aqui para que quede
+                // documentado en el codigo, no solo "porque asi viene".
+                .headers(headers -> headers
+                        .contentTypeOptions(contentTypeOptions -> {})
+                        .frameOptions(frameOptions -> frameOptions.deny())
+                        .contentSecurityPolicy(csp -> csp
+                                .policyDirectives("default-src 'self'; frame-ancestors 'none'"))
+                        // HSTS solo tiene efecto real sobre HTTPS; se declara
+                        // igual para cuando el sistema tenga TLS (ver A02,
+                        // pendiente en esta entrega — ver docs/mediciones/sec/).
+                        .httpStrictTransportSecurity(hsts -> hsts
+                                .includeSubDomains(true)
+                                .maxAgeInSeconds(31536000))
+                )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

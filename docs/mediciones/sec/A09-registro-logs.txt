@@ -1,0 +1,3 @@
+2026-07-30T00:10:55.743-05:00  WARN 14016 --- [nio-8080-exec-7] c.u.a.controller.AuthController          : LOGIN FALLIDO | ip=0:0:0:0:0:0:0:1 | timestamp=2026-07-30T05:10:55.739631400Z | sub=tarea.usuarioA@uteq.edu.ec | motivo=contrasena incorrecta | intento=1
+Hibernate: select u1_0.id_usuario,u1_0.contraseña,u1_0.email,u1_0.fecha_registro,u1_0.nombre,u1_0.rol from usuarios u1_0 where u1_0.email=?
+2026-07-30T00:11:26.508-05:00  INFO 14016 --- [nio-8080-exec-8] c.u.a.controller.AuthController          : LOGIN EXITOSO | ip=0:0:0:0:0:0:0:1 | timestamp=2026-07-30T05:11:26.508804600Z | sub=tarea.usuarioA@uteq.edu.ec

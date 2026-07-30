@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LoginRateLimiterService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">com.uteq.asistente_academico.service</a> &gt; <span class="el_source">LoginRateLimiterService.java</span></div><h1>LoginRateLimiterService.java</h1><pre class="source lang-java linenums">package com.uteq.asistente_academico.service;
+
+import org.springframework.stereotype.Service;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * Control de intentos fallidos de login por IP (OWASP A07 - Fallo de
+ * identificacion y autenticacion). Tras 5 intentos fallidos
+ * consecutivos desde la misma IP, se bloquean nuevos intentos con 429
+ * hasta que haya un login exitoso (que reinicia el contador).
+ *
+ * Implementacion en memoria (ConcurrentHashMap), adecuada para una
+ * unica instancia del backend como en esta entrega. Si el sistema
+ * llegara a escalar a multiples instancias, este contador tendria que
+ * moverse a Redis para ser compartido entre ellas.
+ */
+@Service
+<span class="fc" id="L20">public class LoginRateLimiterService {</span>
+
+    private static final int MAX_INTENTOS = 5;
+
+<span class="fc" id="L24">    private final ConcurrentHashMap&lt;String, AtomicInteger&gt; intentosPorIp = new ConcurrentHashMap&lt;&gt;();</span>
+
+    public boolean estaBloqueado(String ip) {
+<span class="nc" id="L27">        AtomicInteger intentos = intentosPorIp.get(ip);</span>
+<span class="nc bnc" id="L28" title="All 4 branches missed.">        return intentos != null &amp;&amp; intentos.get() &gt;= MAX_INTENTOS;</span>
+    }
+
+    public void registrarIntentoFallido(String ip) {
+<span class="nc" id="L32">        intentosPorIp.computeIfAbsent(ip, k -&gt; new AtomicInteger(0)).incrementAndGet();</span>
+<span class="nc" id="L33">    }</span>
+
+    public void registrarLoginExitoso(String ip) {
+<span class="nc" id="L36">        intentosPorIp.remove(ip);</span>
+<span class="nc" id="L37">    }</span>
+
+    public int intentosActuales(String ip) {
+<span class="nc" id="L40">        AtomicInteger intentos = intentosPorIp.get(ip);</span>
+<span class="nc bnc" id="L41" title="All 2 branches missed.">        return intentos == null ? 0 : intentos.get();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
