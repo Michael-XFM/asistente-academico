@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RedisService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">com.uteq.asistente_academico.service</a> &gt; <span class="el_source">RedisService.java</span></div><h1>RedisService.java</h1><pre class="source lang-java linenums">package com.uteq.asistente_academico.service;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.RedisConnectionFailureException;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Service;
+import java.util.concurrent.TimeUnit;
+
+@Service
+<span class="fc" id="L12">public class RedisService {</span>
+
+<span class="fc" id="L14">    private static final Logger log = LoggerFactory.getLogger(RedisService.class);</span>
+
+    @Autowired
+    private RedisTemplate&lt;String, String&gt; redisTemplate;
+
+    public void agregarTokenBlacklist(String token, long tiempoExpiracion) {
+<span class="nc" id="L20">        redisTemplate.opsForValue().set(</span>
+                &quot;blacklist:&quot; + token,
+                &quot;revocado&quot;,
+                tiempoExpiracion,
+                TimeUnit.MILLISECONDS
+        );
+<span class="nc" id="L26">    }</span>
+
+    /**
+     * Verifica si un token esta en la blacklist de logout.
+     *
+     * Si Redis no esta disponible, se registra un WARN y se asume que el
+     * token NO esta en la blacklist (fail-open), en vez de tumbar toda
+     * peticion autenticada de la aplicacion. Esta decision es deliberada:
+     * Redis aqui solo respalda la revocacion por logout, no la validacion
+     * principal del JWT (que sigue verificando firma y expiracion). Perder
+     * disponibilidad completa de la API por una caida de un componente
+     * secundario de cache es un riesgo mayor que dejar pasar, por unos
+     * segundos, un token legitimo que aun no habia expirado por su cuenta.
+     */
+    public boolean estaEnBlacklist(String token) {
+        try {
+<span class="nc" id="L42">            return Boolean.TRUE.equals(redisTemplate.hasKey(&quot;blacklist:&quot; + token));</span>
+<span class="fc" id="L43">        } catch (RedisConnectionFailureException e) {</span>
+<span class="fc" id="L44">            log.warn(&quot;No se pudo conectar a Redis para verificar blacklist de token; &quot; +</span>
+<span class="fc" id="L45">                    &quot;se asume que el token no esta revocado (fail-open). Causa: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L46">            return false;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
