@@ -1,18 +1,32 @@
-# Imagenes base fijadas por digest sha256 (Bloque B.1 - Reproducibilidad).
-# Digests verificados en Docker Hub el 20/07/2026.
-#
-# Se usa una imagen con Maven YA instalado (en vez de descargarlo con
-# mvnw durante el build) para que la construcción no dependa de la
-# disponibilidad de repo.maven.apache.org en el momento de construir,
-# haciendo el build mas determinista y reproducible.
-FROM maven@sha256:d88e5b38297858f65f97bc7e7964c760ab988fd18ace41589176f1468c49a489 AS build
-WORKDIR /app
-COPY pom.xml .
-COPY src src
-RUN mvn clean package -DskipTests
+.PHONY: up down test bench audit clean
 
-FROM eclipse-temurin@sha256:3f08b13888f595cc49edabea7250ba69499ba25602b267da591720769400e08c
-WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
-EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Levanta el sistema completo (postgres, redis, backend, frontend) desde
+# una clonacion limpia, sin intervencion humana adicional (Bloque B.1).
+up:
+	docker compose up -d --build
+	@echo "Sistema arriba. Backend: https://localhost:8443 | Frontend: http://localhost:80"
+
+# Detiene los contenedores sin borrar el volumen de datos.
+down:
+	docker compose down
+
+# Corre la suite de pruebas JUnit 5 y regenera el reporte JaCoCo en
+# docs/mediciones/jacoco (Bloque C.4).
+test:
+	./mvnw clean test
+
+# Corre los benchmarks de carga con k6 (Bloque C.1) contra el sistema
+# ya levantado con `make up`. Requiere k6 instalado localmente.
+bench:
+	k6 run k6/script.js
+
+# Corre las validaciones de auditoria: trazabilidad de requisitos
+# (Bloque A.3.3) y ausencia de SQL dinamico por concatenacion (Bloque A.2.3).
+audit:
+	bash scripts/validate-traceability.sh
+	bash scripts/audit-sql-dynamic.sh
+
+# Apaga los contenedores y borra el volumen de datos (reinicio total).
+clean:
+	docker compose down -v
+	./mvnw clean
