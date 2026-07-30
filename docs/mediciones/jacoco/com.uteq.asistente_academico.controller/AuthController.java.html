@@ -10,20 +10,29 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping(&quot;/api/auth&quot;)
 @CrossOrigin(origins = {&quot;http://localhost:8080&quot;, &quot;http://localhost&quot;})
-<span class="fc" id="L24">public class AuthController {</span>
+<span class="fc" id="L28">public class AuthController {</span>
 
-<span class="fc" id="L26">    private static final Logger log = LoggerFactory.getLogger(AuthController.class);</span>
+<span class="fc" id="L30">    private static final Logger log = LoggerFactory.getLogger(AuthController.class);</span>
+
+    // Formato basico de email. Un payload de inyeccion tipo ' OR '1'='1
+    // no coincide con este patron y se rechaza antes de llegar a
+    // cualquier consulta a la base de datos (OWASP A03).
+<span class="fc" id="L35">    private static final Pattern EMAIL_VALIDO = Pattern.compile(&quot;^[\\w.+-]+@[\\w-]+\\.[a-zA-Z]{2,}$&quot;);</span>
 
     @Autowired
     private UsuarioService usuarioService;
@@ -40,78 +49,129 @@ import java.util.Optional;
     @PostMapping(&quot;/registro&quot;)
     public ResponseEntity&lt;?&gt; registro(@RequestBody Usuario usuario) {
         try {
-<span class="nc" id="L43">            Usuario nuevo = usuarioService.registrar(usuario);</span>
-<span class="nc" id="L44">            Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
-<span class="nc" id="L45">            response.put(&quot;mensaje&quot;, &quot;Usuario registrado exitosamente&quot;);</span>
-<span class="nc" id="L46">            response.put(&quot;usuario&quot;, nuevo.getEmail());</span>
-<span class="nc" id="L47">            return ResponseEntity.ok(response);</span>
-<span class="nc" id="L48">        } catch (Exception e) {</span>
-<span class="nc" id="L49">            return ResponseEntity.badRequest().body(&quot;Error al registrar: &quot; + e.getMessage());</span>
+<span class="nc" id="L52">            Usuario nuevo = usuarioService.registrar(usuario);</span>
+<span class="nc" id="L53">            Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L54">            response.put(&quot;mensaje&quot;, &quot;Usuario registrado exitosamente&quot;);</span>
+<span class="nc" id="L55">            response.put(&quot;usuario&quot;, nuevo.getEmail());</span>
+<span class="nc" id="L56">            return ResponseEntity.ok(response);</span>
+<span class="nc" id="L57">        } catch (Exception e) {</span>
+<span class="nc" id="L58">            return ResponseEntity.badRequest().body(&quot;Error al registrar: &quot; + e.getMessage());</span>
         }
     }
 
     /**
+     * OWASP A03 (inyeccion): el campo email se valida contra un formato
+     * estricto ANTES de tocar la base de datos. Un payload tipo
+     * ' OR '1'='1 no es un email valido y se rechaza con 422 +
+     * ProblemDetail, sin llegar nunca a ejecutarse como parte de una
+     * consulta (ademas, la consulta subyacente usa Spring Data JPA con
+     * parametros, nunca concatenacion, ver A.2).
+     *
      * OWASP A07 (fallo de identificacion): bloquea con 429 tras 5
      * intentos fallidos consecutivos desde la misma IP.
+     *
      * OWASP A09 (fallo de registro y monitoreo): cada intento de login,
      * exitoso o fallido, se registra con IP, timestamp y el email
-     * involucrado (equivalente al claim &quot;sub&quot; del JWT que se emitiria).
+     * involucrado.
+     *
+     * Bloque A.1: todos los errores responden como ProblemDetail
+     * (RFC 7807), no como texto plano.
      */
     @PostMapping(&quot;/login&quot;)
     public ResponseEntity&lt;?&gt; login(@RequestBody Map&lt;String, String&gt; credenciales, HttpServletRequest request) {
-<span class="nc" id="L62">        String ip = obtenerIpCliente(request);</span>
-<span class="nc" id="L63">        String email = credenciales.get(&quot;email&quot;);</span>
-<span class="nc" id="L64">        String contrasena = credenciales.get(&quot;contrasena&quot;);</span>
+<span class="nc" id="L82">        String ip = obtenerIpCliente(request);</span>
+<span class="nc" id="L83">        String email = credenciales.get(&quot;email&quot;);</span>
+<span class="nc" id="L84">        String contrasena = credenciales.get(&quot;contrasena&quot;);</span>
+<span class="nc" id="L85">        String instancia = request.getRequestURI();</span>
 
-<span class="nc bnc" id="L66" title="All 2 branches missed.">        if (rateLimiterService.estaBloqueado(ip)) {</span>
-<span class="nc" id="L67">            log.warn(&quot;LOGIN BLOQUEADO | ip={} | timestamp={} | motivo=demasiados intentos fallidos&quot;, ip, Instant.now());</span>
-<span class="nc" id="L68">            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)</span>
-<span class="nc" id="L69">                    .body(&quot;Demasiados intentos fallidos. Intenta de nuevo mas tarde.&quot;);</span>
+<span class="nc bnc" id="L87" title="All 4 branches missed.">        if (email == null || !EMAIL_VALIDO.matcher(email).matches()) {</span>
+<span class="nc" id="L88">            log.warn(&quot;LOGIN RECHAZADO | ip={} | timestamp={} | motivo=formato de email invalido | valor_recibido={}&quot;,</span>
+<span class="nc" id="L89">                    ip, Instant.now(), email);</span>
+<span class="nc" id="L90">            ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+                    HttpStatus.UNPROCESSABLE_ENTITY,
+                    &quot;El campo 'email' no tiene un formato de correo valido.&quot;
+            );
+<span class="nc" id="L94">            problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/formato-invalido&quot;));</span>
+<span class="nc" id="L95">            problema.setTitle(&quot;Formato de entrada invalido&quot;);</span>
+<span class="nc" id="L96">            problema.setInstance(URI.create(instancia));</span>
+<span class="nc" id="L97">            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)</span>
+<span class="nc" id="L98">                    .contentType(MediaType.APPLICATION_PROBLEM_JSON)</span>
+<span class="nc" id="L99">                    .body(problema);</span>
         }
 
-<span class="nc" id="L72">        Optional&lt;Usuario&gt; usuario = usuarioService.buscarPorEmail(email);</span>
-
-<span class="nc bnc" id="L74" title="All 2 branches missed.">        if (usuario.isEmpty()) {</span>
-<span class="nc" id="L75">            rateLimiterService.registrarIntentoFallido(ip);</span>
-<span class="nc" id="L76">            log.warn(&quot;LOGIN FALLIDO | ip={} | timestamp={} | sub={} | motivo=usuario no encontrado | intento={}&quot;,</span>
-<span class="nc" id="L77">                    ip, Instant.now(), email, rateLimiterService.intentosActuales(ip));</span>
-<span class="nc" id="L78">            return ResponseEntity.badRequest().body(&quot;Usuario no encontrado&quot;);</span>
+<span class="nc bnc" id="L102" title="All 2 branches missed.">        if (rateLimiterService.estaBloqueado(ip)) {</span>
+<span class="nc" id="L103">            log.warn(&quot;LOGIN BLOQUEADO | ip={} | timestamp={} | motivo=demasiados intentos fallidos&quot;, ip, Instant.now());</span>
+<span class="nc" id="L104">            ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+                    HttpStatus.TOO_MANY_REQUESTS,
+                    &quot;Demasiados intentos fallidos. Intenta de nuevo mas tarde.&quot;
+            );
+<span class="nc" id="L108">            problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/demasiados-intentos&quot;));</span>
+<span class="nc" id="L109">            problema.setTitle(&quot;Limite de intentos excedido&quot;);</span>
+<span class="nc" id="L110">            problema.setInstance(URI.create(instancia));</span>
+<span class="nc" id="L111">            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)</span>
+<span class="nc" id="L112">                    .contentType(MediaType.APPLICATION_PROBLEM_JSON)</span>
+<span class="nc" id="L113">                    .body(problema);</span>
         }
 
-<span class="nc bnc" id="L81" title="All 2 branches missed.">        if (!usuarioService.verificarContrasena(contrasena, usuario.get().getContrasena())) {</span>
-<span class="nc" id="L82">            rateLimiterService.registrarIntentoFallido(ip);</span>
-<span class="nc" id="L83">            log.warn(&quot;LOGIN FALLIDO | ip={} | timestamp={} | sub={} | motivo=contrasena incorrecta | intento={}&quot;,</span>
-<span class="nc" id="L84">                    ip, Instant.now(), email, rateLimiterService.intentosActuales(ip));</span>
-<span class="nc" id="L85">            return ResponseEntity.badRequest().body(&quot;Contraseña incorrecta&quot;);</span>
+<span class="nc" id="L116">        Optional&lt;Usuario&gt; usuario = usuarioService.buscarPorEmail(email);</span>
+
+<span class="nc bnc" id="L118" title="All 2 branches missed.">        if (usuario.isEmpty()) {</span>
+<span class="nc" id="L119">            rateLimiterService.registrarIntentoFallido(ip);</span>
+<span class="nc" id="L120">            log.warn(&quot;LOGIN FALLIDO | ip={} | timestamp={} | sub={} | motivo=usuario no encontrado | intento={}&quot;,</span>
+<span class="nc" id="L121">                    ip, Instant.now(), email, rateLimiterService.intentosActuales(ip));</span>
+<span class="nc" id="L122">            return construirErrorCredenciales(instancia);</span>
         }
 
-<span class="nc" id="L88">        rateLimiterService.registrarLoginExitoso(ip);</span>
-<span class="nc" id="L89">        log.info(&quot;LOGIN EXITOSO | ip={} | timestamp={} | sub={}&quot;, ip, Instant.now(), email);</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">        if (!usuarioService.verificarContrasena(contrasena, usuario.get().getContrasena())) {</span>
+<span class="nc" id="L126">            rateLimiterService.registrarIntentoFallido(ip);</span>
+<span class="nc" id="L127">            log.warn(&quot;LOGIN FALLIDO | ip={} | timestamp={} | sub={} | motivo=contrasena incorrecta | intento={}&quot;,</span>
+<span class="nc" id="L128">                    ip, Instant.now(), email, rateLimiterService.intentosActuales(ip));</span>
+<span class="nc" id="L129">            return construirErrorCredenciales(instancia);</span>
+        }
 
-<span class="nc" id="L91">        String token = authService.generarToken(usuario.get());</span>
-<span class="nc" id="L92">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
-<span class="nc" id="L93">        response.put(&quot;token&quot;, token);</span>
-<span class="nc" id="L94">        response.put(&quot;rol&quot;, usuario.get().getRol());</span>
-<span class="nc" id="L95">        response.put(&quot;nombre&quot;, usuario.get().getNombre());</span>
-<span class="nc" id="L96">        return ResponseEntity.ok(response);</span>
+<span class="nc" id="L132">        rateLimiterService.registrarLoginExitoso(ip);</span>
+<span class="nc" id="L133">        log.info(&quot;LOGIN EXITOSO | ip={} | timestamp={} | sub={}&quot;, ip, Instant.now(), email);</span>
+
+<span class="nc" id="L135">        String token = authService.generarToken(usuario.get());</span>
+<span class="nc" id="L136">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L137">        response.put(&quot;token&quot;, token);</span>
+<span class="nc" id="L138">        response.put(&quot;rol&quot;, usuario.get().getRol());</span>
+<span class="nc" id="L139">        response.put(&quot;nombre&quot;, usuario.get().getNombre());</span>
+<span class="nc" id="L140">        return ResponseEntity.ok(response);</span>
     }
 
     @PostMapping(&quot;/logout&quot;)
     public ResponseEntity&lt;?&gt; logout(@RequestHeader(&quot;Authorization&quot;) String authHeader) {
-<span class="nc bnc" id="L101" title="All 4 branches missed.">        if (authHeader != null &amp;&amp; authHeader.startsWith(&quot;Bearer &quot;)) {</span>
-<span class="nc" id="L102">            String token = authHeader.substring(7);</span>
-<span class="nc" id="L103">            redisService.agregarTokenBlacklist(token, 86400000);</span>
-<span class="nc" id="L104">            return ResponseEntity.ok(&quot;Sesión cerrada exitosamente&quot;);</span>
+<span class="nc bnc" id="L145" title="All 4 branches missed.">        if (authHeader != null &amp;&amp; authHeader.startsWith(&quot;Bearer &quot;)) {</span>
+<span class="nc" id="L146">            String token = authHeader.substring(7);</span>
+<span class="nc" id="L147">            redisService.agregarTokenBlacklist(token, 86400000);</span>
+<span class="nc" id="L148">            return ResponseEntity.ok(&quot;Sesión cerrada exitosamente&quot;);</span>
         }
-<span class="nc" id="L106">        return ResponseEntity.badRequest().body(&quot;Token no proporcionado&quot;);</span>
+<span class="nc" id="L150">        return ResponseEntity.badRequest().body(&quot;Token no proporcionado&quot;);</span>
+    }
+
+    private ResponseEntity&lt;ProblemDetail&gt; construirErrorCredenciales(String instancia) {
+        // Mensaje generico a proposito: no distingue &quot;usuario no
+        // encontrado&quot; de &quot;contrasena incorrecta&quot; en la respuesta al
+        // cliente, para no facilitar enumeracion de usuarios validos.
+<span class="nc" id="L157">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+                HttpStatus.BAD_REQUEST,
+                &quot;Email o contraseña incorrectos.&quot;
+        );
+<span class="nc" id="L161">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/credenciales-invalidas&quot;));</span>
+<span class="nc" id="L162">        problema.setTitle(&quot;Credenciales invalidas&quot;);</span>
+<span class="nc" id="L163">        problema.setInstance(URI.create(instancia));</span>
+<span class="nc" id="L164">        return ResponseEntity.status(HttpStatus.BAD_REQUEST)</span>
+<span class="nc" id="L165">                .contentType(MediaType.APPLICATION_PROBLEM_JSON)</span>
+<span class="nc" id="L166">                .body(problema);</span>
     }
 
     private String obtenerIpCliente(HttpServletRequest request) {
-<span class="nc" id="L110">        String forwarded = request.getHeader(&quot;X-Forwarded-For&quot;);</span>
-<span class="nc bnc" id="L111" title="All 4 branches missed.">        if (forwarded != null &amp;&amp; !forwarded.isBlank()) {</span>
-<span class="nc" id="L112">            return forwarded.split(&quot;,&quot;)[0].trim();</span>
+<span class="nc" id="L170">        String forwarded = request.getHeader(&quot;X-Forwarded-For&quot;);</span>
+<span class="nc bnc" id="L171" title="All 4 branches missed.">        if (forwarded != null &amp;&amp; !forwarded.isBlank()) {</span>
+<span class="nc" id="L172">            return forwarded.split(&quot;,&quot;)[0].trim();</span>
         }
-<span class="nc" id="L114">        return request.getRemoteAddr();</span>
+<span class="nc" id="L174">        return request.getRemoteAddr();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
