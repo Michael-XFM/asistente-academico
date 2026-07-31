@@ -24,21 +24,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 <span class="fc" id="L24">    private final ConcurrentHashMap&lt;String, AtomicInteger&gt; intentosPorIp = new ConcurrentHashMap&lt;&gt;();</span>
 
     public boolean estaBloqueado(String ip) {
-<span class="nc" id="L27">        AtomicInteger intentos = intentosPorIp.get(ip);</span>
-<span class="nc bnc" id="L28" title="All 4 branches missed.">        return intentos != null &amp;&amp; intentos.get() &gt;= MAX_INTENTOS;</span>
+<span class="fc" id="L27">        AtomicInteger intentos = intentosPorIp.get(ip);</span>
+<span class="fc bfc" id="L28" title="All 4 branches covered.">        return intentos != null &amp;&amp; intentos.get() &gt;= MAX_INTENTOS;</span>
     }
 
     public void registrarIntentoFallido(String ip) {
-<span class="nc" id="L32">        intentosPorIp.computeIfAbsent(ip, k -&gt; new AtomicInteger(0)).incrementAndGet();</span>
-<span class="nc" id="L33">    }</span>
+<span class="fc" id="L32">        intentosPorIp.computeIfAbsent(ip, k -&gt; new AtomicInteger(0)).incrementAndGet();</span>
+<span class="fc" id="L33">    }</span>
 
     public void registrarLoginExitoso(String ip) {
-<span class="nc" id="L36">        intentosPorIp.remove(ip);</span>
-<span class="nc" id="L37">    }</span>
+<span class="fc" id="L36">        intentosPorIp.remove(ip);</span>
+<span class="fc" id="L37">    }</span>
 
     public int intentosActuales(String ip) {
-<span class="nc" id="L40">        AtomicInteger intentos = intentosPorIp.get(ip);</span>
-<span class="nc bnc" id="L41" title="All 2 branches missed.">        return intentos == null ? 0 : intentos.get();</span>
+<span class="fc" id="L40">        AtomicInteger intentos = intentosPorIp.get(ip);</span>
+<span class="pc bpc" id="L41" title="1 of 2 branches missed.">        return intentos == null ? 0 : intentos.get();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
