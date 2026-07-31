@@ -32,7 +32,7 @@ public class AuthController {
     // Formato basico de email. Un payload de inyeccion tipo ' OR '1'='1
     // no coincide con este patron y se rechaza antes de llegar a
     // cualquier consulta a la base de datos (OWASP A03).
-    private static final Pattern EMAIL_VALIDO = Pattern.compile("^[\\w.+-]+@[\\w-]+\\.[a-zA-Z]{2,}$");
+    private static final Pattern EMAIL_VALIDO = Pattern.compile("^[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+$");
 
     @Autowired
     private UsuarioService usuarioService;
