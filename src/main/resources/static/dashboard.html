@@ -118,7 +118,7 @@
 
     async function cargarDashboard() {
         try {
-            const respuesta = await fetch('/api/dashboard', {
+            const respuesta = await fetch('https://localhost:8443/api/dashboard', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -172,7 +172,7 @@
 
     async function marcarAvisosLeidos() {
         try {
-            const respuesta = await fetch('/api/dashboard/avisos/marcar-leidos', {
+            const respuesta = await fetch('https://localhost:8443/api/dashboard/avisos/marcar-leidos', {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

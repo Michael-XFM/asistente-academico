@@ -36,7 +36,7 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/api/tareas")
-@CrossOrigin(origins = "http://localhost:8080")
+@CrossOrigin(origins = {"http://localhost:8080", "http://localhost"})
 public class TareaController {
 
     @Autowired
