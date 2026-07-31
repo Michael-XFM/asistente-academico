@@ -53,9 +53,10 @@ frontend HTML/CSS/JS estático.
 - Arquitectura (ADRs + diagramas C4): [`docs/adr/`](docs/adr/), [`docs/arquitectura/`](docs/arquitectura/)
 - Matriz de trazabilidad: [`docs/trazabilidad/matriz.csv`](docs/trazabilidad/matriz.csv)
 - Evidencia empírica (rendimiento, seguridad, cobertura, accesibilidad): [`docs/mediciones/`](docs/mediciones/)
+- 
 ## Video demo
 
-[Ver demo (2-3 min)]https://drive.google.com/file/d/12n3o1qQ2qREs8klmOWsZpJYt4FFW1hOQ/view?usp=drivesdk
+[Ver demo (2-3 min)](https://drive.google.com/file/d/12n3o1qQ2qREs8klmOWsZpJYt4FFW1hOQ/view?usp=drivesdk)
 
 ## Licencia
 
