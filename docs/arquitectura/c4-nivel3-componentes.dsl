@@ -21,10 +21,10 @@ workspace "Asistente Virtual Académico" "Diagrama C4 Nivel 3 - Componentes del 
                 tareaRepository = component "TareaRepository" "CRUD elemental paginado sobre la entidad Tarea" "Spring Data JPA Repository"
                 usuarioRepository = component "UsuarioRepository" "CRUD elemental sobre la entidad Usuario" "Spring Data JPA Repository"
             }
-        }
 
-        baseDatos = container "Base de datos" "PostgreSQL 16"
-        cache = container "Cache / Blacklist" "Redis 7"
+            baseDatos = container "Base de datos" "PostgreSQL 16"
+            cache = container "Cache / Blacklist" "Redis 7"
+        }
 
         estudiante -> frontend "Usa"
         frontend -> authController "POST /api/auth/login" "JSON/HTTPS"
