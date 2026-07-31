@@ -15,8 +15,9 @@
             --green-dark:#146B3F;
             --green-pale:#E7F6EC;
             --ink:#16241C;
-            --muted:#6B8577;
+            --muted:#5B7165;
             --gold:#F5B942;
+            --gold-dark:#8A6414;
             --error:#C0392B;
             --error-bg:#FBEAE8;
             --success:#146B3F;
@@ -71,7 +72,7 @@
             color:var(--green-dark);
             letter-spacing:.02em;
         }
-        .mark .name span{ color:var(--gold); }
+        .mark .name span{ color:var(--gold-dark); }
 
         .card{
             background:var(--card);
@@ -195,7 +196,7 @@
 <div class="blob blob-2"></div>
 <div class="blob blob-3"></div>
 
-<div class="wrap">
+<main class="wrap">
     <div class="mark">
         <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M32 10 58 21 32 32 6 21 32 10Z" fill="#1F9D5C"/>
@@ -234,7 +235,7 @@
             <a href="#" id="forgot">¿Olvidaste tu contraseña?</a>
         </div>
     </div>
-</div>
+</main>
 
 <script>
     async function login() {
