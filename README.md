@@ -1,6 +1,6 @@
 # Asistente Virtual Académico con Chatbot Híbrido
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21712828.svg)](https://doi.org/10.5281/zenodo.21712828)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21798777.svg)](https://doi.org/10.5281/zenodo.21798777)
 [![Licencia](https://img.shields.io/badge/licencia-MIT-green)](LICENSE)
 [![Entrega](https://img.shields.io/badge/entrega-v0.9.0--rc-blue)](https://github.com/Michael-XFM/asistente-academico/releases/tag/v0.9.0-rc)
 
@@ -64,4 +64,4 @@ MIT — ver [LICENSE](LICENSE).
 
 ## Cómo citar
 
-Ver [CITATION.cff](CITATION.cff). DOI: [10.5281/zenodo.21712828](https://doi.org/10.5281/zenodo.21712828).
+Ver [CITATION.cff](CITATION.cff). DOI: [10.5281/zenodo.21798777](https://doi.org/10.5281/zenodo.21798777).
