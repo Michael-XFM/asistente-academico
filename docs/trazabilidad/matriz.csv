@@ -9,3 +9,6 @@ REQ-NF-001,no funcional,Must,HU-03,CU-03,DashboardController,GET /api/dashboard,
 REQ-NF-002,no funcional,Must,,CU-02;CU-03,fn_obtener_resumen_academico;fn_listar_tareas_pendientes;fn_marcar_avisos_leidos,,,SP,docs/basedatos/CATALOGO-SP.md,verificado
 REQ-NF-003,no funcional,Should,HU-01,CU-01,RedisService,,,CRUD-ORM,(prueba manual: Redis detenido y sistema respondio),verificado
 REQ-NF-004,no funcional,Must,,,docker-compose.yml;Makefile;db/schema.sql,,(prueba manual: make up + login exitoso),,(prueba manual: clonacion limpia + make up + login exitoso),verificado
+REQ-F-007,funcional,Should,,,HorarioController;HorarioRepository;sp_validar_disponibilidad_horario,POST /api/horarios/validar-disponibilidad,pendiente,SP,docs/basedatos/CATALOGO-SP.md,implementado
+REQ-F-008,funcional,Could,,,TareaController;TareaRepository;sp_generar_codigo_tarea,POST /api/tareas,pendiente,SP,docs/basedatos/CATALOGO-SP.md,implementado
+REQ-F-009,funcional,Should,,,CalificacionController;CalificacionRepository;sp_reporte_calificaciones,GET /api/calificaciones/reporte,pendiente,SP,docs/basedatos/CATALOGO-SP.md,implementado
