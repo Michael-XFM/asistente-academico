@@ -85,6 +85,10 @@ public class TareaController {
         // La tarea SIEMPRE se crea a nombre del usuario autenticado,
         // sin importar que el cliente envie otro id_usuario en el body.
         tarea.setUsuario(usuarioOpt.get());
+        // El folio de seguimiento SIEMPRE se genera en el servidor (Bloque
+        // A.2 — generación de códigos secuenciales), nunca se acepta uno
+        // enviado por el cliente en el body.
+        tarea.setCodigo(tareaRepository.spGenerarCodigoTarea());
         return ResponseEntity.ok(tareaRepository.save(tarea));
     }
 

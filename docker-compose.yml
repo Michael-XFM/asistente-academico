@@ -20,7 +20,8 @@ services:
       - ./db/procs/fn_listar_tareas_pendientes.sql:/docker-entrypoint-initdb.d/03-fn_listar_tareas_pendientes.sql:ro
       - ./db/procs/fn_marcar_avisos_leidos.sql:/docker-entrypoint-initdb.d/04-fn_marcar_avisos_leidos.sql:ro
       - ./db/procs/sp_validar_disponibilidad_horario.sql:/docker-entrypoint-initdb.d/05-sp_validar_disponibilidad_horario.sql:ro
-      - ./db/seed.sql:/docker-entrypoint-initdb.d/06-seed.sql:ro
+      - ./db/procs/sp_generar_codigo_tarea.sql:/docker-entrypoint-initdb.d/06-sp_generar_codigo_tarea.sql:ro
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/07-seed.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s

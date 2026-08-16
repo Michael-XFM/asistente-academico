@@ -30,4 +30,10 @@ public class Tarea {
 
     @Column(name = "fecha_entrega", nullable = false)
     private LocalDate fechaEntrega;
+
+    // Folio de seguimiento legible (ej. "TAR-2026-000042"), generado por
+    // sp_generar_codigo_tarea al crear la tarea. Nullable: las tareas
+    // creadas antes de V2__add_codigo_tarea.sql no tienen uno retroactivo.
+    @Column(name = "codigo", length = 20)
+    private String codigo;
 }

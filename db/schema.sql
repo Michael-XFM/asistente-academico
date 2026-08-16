@@ -2,8 +2,11 @@
 -- Esquema definitivo del Asistente Virtual Académico, aplicado UNICAMENTE
 -- via docker-entrypoint-initdb.d al levantar el contenedor de PostgreSQL
 -- desde una clonacion limpia (Bloque B - Reproducibilidad automatica).
--- Identico en contenido a src/main/resources/db/migration/V1__schema_inicial.sql
--- (que Flyway aplica en entornos de desarrollo local sin Docker).
+-- Equivalente al resultado combinado de V1__schema_inicial.sql +
+-- V2__add_codigo_tarea.sql en src/main/resources/db/migration/ (que
+-- Flyway aplica en entornos de desarrollo local sin Docker): este
+-- archivo representa el esquema final ya migrado, no un historial de
+-- pasos incrementales.
 -- Prohibido depender de spring.jpa.hibernate.ddl-auto=update: el esquema
 -- se define unicamente aqui.
 
@@ -36,7 +39,8 @@ CREATE TABLE tareas (
                         id_usuario    INTEGER NOT NULL REFERENCES usuarios(id_usuario),
                         titulo        VARCHAR(200) NOT NULL,
                         descripcion   TEXT NOT NULL,
-                        fecha_entrega DATE NOT NULL
+                        fecha_entrega DATE NOT NULL,
+                        codigo        VARCHAR(20)
 );
 
 CREATE TABLE calificaciones (
