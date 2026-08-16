@@ -28,6 +28,14 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/*.html", "/css/**", "/js/**", "/index.html").permitAll()
+                        // Documentacion OpenAPI/Swagger: publica a proposito, igual que en
+                        // cualquier API publica bien documentada. No expone datos, solo el
+                        // contrato de la API (Bloque B.1 de esta entrega).
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 // OWASP A05 (mala configuracion de seguridad): cabeceras
@@ -44,7 +52,11 @@ public class SecurityConfig {
                                                 "frame-ancestors 'none'; " +
                                                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
                                                 "font-src 'self' https://fonts.gstatic.com; " +
-                                                "script-src 'self' 'unsafe-inline'"
+                                                "script-src 'self' 'unsafe-inline'; " +
+                                                // Swagger UI (springdoc) dibuja sus iconos como SVG
+                                                // inline en data URIs; sin este permiso, el navegador
+                                                // los bloquea por CSP aunque la pagina siga funcionando.
+                                                "img-src 'self' data:"
                                 ))
                         // HSTS solo tiene efecto real sobre HTTPS; se declara
                         // igual para cuando el sistema tenga TLS (ver A02,
