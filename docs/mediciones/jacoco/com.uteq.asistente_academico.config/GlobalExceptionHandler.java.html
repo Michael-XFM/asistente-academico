@@ -4,6 +4,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
+import com.uteq.asistente_academico.exception.ApiExternaException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
@@ -23,30 +25,66 @@ import java.net.URI;
  * login) no pasan por aqui.
  */
 @RestControllerAdvice
-<span class="fc" id="L26">public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {</span>
+<span class="fc" id="L28">public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {</span>
 
     @ExceptionHandler(Exception.class)
     public ProblemDetail manejarExcepcionGeneral(Exception ex, WebRequest request) {
-<span class="nc" id="L30">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+<span class="fc" id="L32">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 &quot;Ocurrio un error inesperado al procesar la solicitud.&quot;
         );
-<span class="nc" id="L34">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/error-interno&quot;));</span>
-<span class="nc" id="L35">        problema.setTitle(&quot;Error interno del servidor&quot;);</span>
-<span class="nc" id="L36">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
-<span class="nc" id="L37">        return problema;</span>
+<span class="fc" id="L36">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/error-interno&quot;));</span>
+<span class="fc" id="L37">        problema.setTitle(&quot;Error interno del servidor&quot;);</span>
+<span class="fc" id="L38">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
+<span class="fc" id="L39">        return problema;</span>
+    }
+
+    /**
+     * AccessDeniedException la lanza el interceptor de @PreAuthorize
+     * (Bloque de roles y permisos) cuando el usuario esta autenticado
+     * pero su rol no alcanza. Necesita su propio @ExceptionHandler
+     * porque, sin este, cae en el manejarExcepcionGeneral(Exception) de
+     * arriba y se pierde el 403: el cliente veria un 500 generico en vez
+     * de un 403 explicando que le falta el rol adecuado.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail manejarAccesoDenegado(AccessDeniedException ex, WebRequest request) {
+<span class="nc" id="L52">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+                HttpStatus.FORBIDDEN,
+                &quot;Tu rol no tiene permiso para acceder a este recurso.&quot;
+        );
+<span class="nc" id="L56">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/rol-insuficiente&quot;));</span>
+<span class="nc" id="L57">        problema.setTitle(&quot;Acceso prohibido&quot;);</span>
+<span class="nc" id="L58">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
+<span class="nc" id="L59">        return problema;</span>
+    }
+
+    /**
+     * Fallo al consumir una API externa (timeout, 4xx o 5xx de la API
+     * de terceros), lanzada desde FeriadosService. El status HTTP que
+     * corresponde devolver ya viene decidido en la excepcion (400 si la
+     * culpa es de los parametros de entrada, 502/504 si la culpa es del
+     * servicio externo) — ver ApiExternaException.
+     */
+    @ExceptionHandler(ApiExternaException.class)
+    public ProblemDetail manejarApiExterna(ApiExternaException ex, WebRequest request) {
+<span class="nc" id="L71">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());</span>
+<span class="nc" id="L72">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/api-externa&quot;));</span>
+<span class="nc" id="L73">        problema.setTitle(&quot;Fallo en servicio externo&quot;);</span>
+<span class="nc" id="L74">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
+<span class="nc" id="L75">        return problema;</span>
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail manejarArgumentoInvalido(IllegalArgumentException ex, WebRequest request) {
-<span class="nc" id="L42">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+<span class="nc" id="L80">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
                 HttpStatus.BAD_REQUEST,
-<span class="nc" id="L44">                ex.getMessage()</span>
+<span class="nc" id="L82">                ex.getMessage()</span>
         );
-<span class="nc" id="L46">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/argumento-invalido&quot;));</span>
-<span class="nc" id="L47">        problema.setTitle(&quot;Argumento invalido&quot;);</span>
-<span class="nc" id="L48">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
-<span class="nc" id="L49">        return problema;</span>
+<span class="nc" id="L84">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/argumento-invalido&quot;));</span>
+<span class="nc" id="L85">        problema.setTitle(&quot;Argumento invalido&quot;);</span>
+<span class="nc" id="L86">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
+<span class="nc" id="L87">        return problema;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

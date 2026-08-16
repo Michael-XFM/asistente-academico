@@ -1,29 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RedisService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">com.uteq.asistente_academico.service</a> &gt; <span class="el_source">RedisService.java</span></div><h1>RedisService.java</h1><pre class="source lang-java linenums">package com.uteq.asistente_academico.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 @Service
-<span class="fc" id="L12">public class RedisService {</span>
+<span class="fc" id="L15">public class RedisService {</span>
 
-<span class="fc" id="L14">    private static final Logger log = LoggerFactory.getLogger(RedisService.class);</span>
+<span class="fc" id="L17">    private static final Logger log = LoggerFactory.getLogger(RedisService.class);</span>
 
     @Autowired
     private RedisTemplate&lt;String, String&gt; redisTemplate;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     public void agregarTokenBlacklist(String token, long tiempoExpiracion) {
-<span class="fc" id="L20">        redisTemplate.opsForValue().set(</span>
+<span class="fc" id="L26">        redisTemplate.opsForValue().set(</span>
                 &quot;blacklist:&quot; + token,
                 &quot;revocado&quot;,
                 tiempoExpiracion,
                 TimeUnit.MILLISECONDS
         );
-<span class="fc" id="L26">    }</span>
+<span class="fc" id="L32">    }</span>
 
     /**
      * Verifica si un token esta en la blacklist de logout.
@@ -39,11 +45,42 @@ import java.util.concurrent.TimeUnit;
      */
     public boolean estaEnBlacklist(String token) {
         try {
-<span class="fc" id="L42">            return Boolean.TRUE.equals(redisTemplate.hasKey(&quot;blacklist:&quot; + token));</span>
-<span class="nc" id="L43">        } catch (RedisConnectionFailureException e) {</span>
-<span class="nc" id="L44">            log.warn(&quot;No se pudo conectar a Redis para verificar blacklist de token; &quot; +</span>
-<span class="nc" id="L45">                    &quot;se asume que el token no esta revocado (fail-open). Causa: {}&quot;, e.getMessage());</span>
-<span class="nc" id="L46">            return false;</span>
+<span class="fc" id="L48">            return Boolean.TRUE.equals(redisTemplate.hasKey(&quot;blacklist:&quot; + token));</span>
+<span class="nc" id="L49">        } catch (RedisConnectionFailureException e) {</span>
+<span class="nc" id="L50">            log.warn(&quot;No se pudo conectar a Redis para verificar blacklist de token; &quot; +</span>
+<span class="nc" id="L51">                    &quot;se asume que el token no esta revocado (fail-open). Causa: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L52">            return false;</span>
+        }
+    }
+
+    /**
+     * Cache-aside generico (Bloque de API externa + cache): guarda
+     * cualquier objeto serializable como JSON bajo una clave, con TTL.
+     * Usado por FeriadosService para no golpear la API externa en cada
+     * request.
+     */
+    public void guardarJson(String key, Object valor, long ttlSegundos) {
+        try {
+<span class="nc" id="L64">            String json = objectMapper.writeValueAsString(valor);</span>
+<span class="nc" id="L65">            redisTemplate.opsForValue().set(key, json, ttlSegundos, TimeUnit.SECONDS);</span>
+<span class="nc" id="L66">        } catch (Exception e) {</span>
+            // Igual que estaEnBlacklist: si Redis falla, no debe tumbar la
+            // respuesta al cliente. Simplemente no queda cacheado esta vez.
+<span class="nc" id="L69">            log.warn(&quot;No se pudo guardar en cache la clave '{}' (fail-open). Causa: {}&quot;, key, e.getMessage());</span>
+<span class="nc" id="L70">        }</span>
+<span class="nc" id="L71">    }</span>
+
+    public &lt;T&gt; Optional&lt;T&gt; obtenerJson(String key, TypeReference&lt;T&gt; tipo) {
+        try {
+<span class="nc" id="L75">            String json = redisTemplate.opsForValue().get(key);</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">            if (json == null) {</span>
+<span class="nc" id="L77">                return Optional.empty();</span>
+            }
+<span class="nc" id="L79">            return Optional.of(objectMapper.readValue(json, tipo));</span>
+<span class="nc" id="L80">        } catch (Exception e) {</span>
+<span class="nc" id="L81">            log.warn(&quot;No se pudo leer de cache la clave '{}' (fail-open, se consulta la fuente original). Causa: {}&quot;,</span>
+<span class="nc" id="L82">                    key, e.getMessage());</span>
+<span class="nc" id="L83">            return Optional.empty();</span>
         }
     }
 }

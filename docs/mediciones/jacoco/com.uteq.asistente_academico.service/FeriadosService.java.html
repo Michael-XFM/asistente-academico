@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FeriadosService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">com.uteq.asistente_academico.service</a> &gt; <span class="el_source">FeriadosService.java</span></div><h1>FeriadosService.java</h1><pre class="source lang-java linenums">package com.uteq.asistente_academico.service;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.uteq.asistente_academico.dto.Feriado;
+import com.uteq.asistente_academico.dto.ResultadoFeriados;
+import com.uteq.asistente_academico.exception.ApiExternaException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Consume la API publica Nager.Date (https://date.nager.at) para
+ * obtener los feriados nacionales de un pais/anio, relevantes para el
+ * calendario academico (dias sin clases). Implementa cache-aside con
+ * Redis: se consulta el cache primero, y solo se llama a la API
+ * externa en caso de fallo de cache (miss).
+ */
+@Service
+<span class="fc" id="L29">public class FeriadosService {</span>
+
+<span class="fc" id="L31">    private static final Logger log = LoggerFactory.getLogger(FeriadosService.class);</span>
+
+    private static final String URL_NAGER = &quot;https://date.nager.at/api/v3/PublicHolidays/{anio}/{pais}&quot;;
+
+    // TTL corto (1 hora) a proposito: los feriados de un anio no cambian
+    // en tiempo real, pero mantenerlo bajo permite demostrar el patron
+    // cache-aside completo (miss -&gt; hit -&gt; expiracion) sin esperar dias.
+    private static final long TTL_SEGUNDOS = 3600;
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    @Autowired
+    private RedisService redisService;
+
+    public ResultadoFeriados obtener(int anio, String pais) {
+<span class="nc" id="L47">        String clave = &quot;feriados:&quot; + pais + &quot;:&quot; + anio;</span>
+
+<span class="nc" id="L49">        Optional&lt;List&lt;Feriado&gt;&gt; enCache = redisService.obtenerJson(clave, new TypeReference&lt;List&lt;Feriado&gt;&gt;() {});</span>
+<span class="nc bnc" id="L50" title="All 2 branches missed.">        if (enCache.isPresent()) {</span>
+<span class="nc" id="L51">            log.info(&quot;CACHE HIT | clave={}&quot;, clave);</span>
+<span class="nc" id="L52">            return new ResultadoFeriados(enCache.get(), &quot;CACHE&quot;);</span>
+        }
+
+<span class="nc" id="L55">        log.info(&quot;CACHE MISS | clave={} | consultando API externa&quot;, clave);</span>
+<span class="nc" id="L56">        List&lt;Feriado&gt; feriados = consultarApiExterna(anio, pais);</span>
+
+<span class="nc" id="L58">        redisService.guardarJson(clave, feriados, TTL_SEGUNDOS);</span>
+<span class="nc" id="L59">        return new ResultadoFeriados(feriados, &quot;API_EXTERNA&quot;);</span>
+    }
+
+    private List&lt;Feriado&gt; consultarApiExterna(int anio, String pais) {
+        try {
+<span class="nc" id="L64">            Feriado[] respuesta = restTemplate.getForObject(URL_NAGER, Feriado[].class, anio, pais);</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">            return respuesta != null ? Arrays.asList(respuesta) : List.of();</span>
+<span class="nc" id="L66">        } catch (HttpClientErrorException e) {</span>
+            // 4xx: la API externa rechazo la solicitud. El caso tipico es un
+            // codigo de pais o un anio invalidos, que es responsabilidad de
+            // quien llamo a NUESTRO endpoint, no un fallo del servidor.
+<span class="nc" id="L70">            throw new ApiExternaException(</span>
+                    HttpStatus.BAD_REQUEST,
+                    &quot;La API externa de feriados rechazo la solicitud (año o código de país inválido).&quot;,
+                    e
+            );
+<span class="nc" id="L75">        } catch (HttpServerErrorException e) {</span>
+            // 5xx: el problema es de la API externa, no de quien nos llamo.
+<span class="nc" id="L77">            throw new ApiExternaException(</span>
+                    HttpStatus.BAD_GATEWAY,
+                    &quot;El servicio externo de feriados no está disponible en este momento.&quot;,
+                    e
+            );
+<span class="nc" id="L82">        } catch (ResourceAccessException e) {</span>
+            // Timeout de conexion o de lectura (ver RestTemplateConfig).
+<span class="nc" id="L84">            throw new ApiExternaException(</span>
+                    HttpStatus.GATEWAY_TIMEOUT,
+                    &quot;Se agotó el tiempo de espera al consultar el servicio externo de feriados.&quot;,
+                    e
+            );
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

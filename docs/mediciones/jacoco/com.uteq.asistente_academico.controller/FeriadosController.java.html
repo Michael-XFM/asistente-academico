@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FeriadosController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">com.uteq.asistente_academico.controller</a> &gt; <span class="el_source">FeriadosController.java</span></div><h1>FeriadosController.java</h1><pre class="source lang-java linenums">package com.uteq.asistente_academico.controller;
+
+import com.uteq.asistente_academico.dto.ResultadoFeriados;
+import com.uteq.asistente_academico.service.FeriadosService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.Year;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Feriados nacionales, consumidos de una API externa (Nager.Date) con
+ * cache-aside en Redis (ver FeriadosService). Relevante para el
+ * asistente academico porque un feriado significa &quot;no hay clases ese
+ * dia&quot; al calcular fechas de entrega y horarios.
+ *
+ * El campo &quot;origen&quot; en la respuesta (&quot;CACHE&quot; o &quot;API_EXTERNA&quot;) es solo
+ * para poder demostrar el cache-aside en vivo: la primera llamada para
+ * un año/país da API_EXTERNA, las siguientes (dentro del TTL) dan
+ * CACHE.
+ */
+@RestController
+@RequestMapping(&quot;/api/feriados&quot;)
+@CrossOrigin(origins = {&quot;http://localhost:8080&quot;, &quot;http://localhost&quot;})
+<span class="fc" id="L27">public class FeriadosController {</span>
+
+    @Autowired
+    private FeriadosService feriadosService;
+
+    @GetMapping
+    public ResponseEntity&lt;?&gt; obtenerFeriados(
+            @RequestParam(required = false) Integer anio,
+            @RequestParam(defaultValue = &quot;EC&quot;) String pais) {
+<span class="nc bnc" id="L36" title="All 2 branches missed.">        int anioConsulta = anio != null ? anio : Year.now().getValue();</span>
+<span class="nc" id="L37">        String paisConsulta = pais.toUpperCase();</span>
+
+<span class="nc" id="L39">        ResultadoFeriados resultado = feriadosService.obtener(anioConsulta, paisConsulta);</span>
+
+<span class="nc" id="L41">        Map&lt;String, Object&gt; respuesta = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L42">        respuesta.put(&quot;anio&quot;, anioConsulta);</span>
+<span class="nc" id="L43">        respuesta.put(&quot;pais&quot;, paisConsulta);</span>
+<span class="nc" id="L44">        respuesta.put(&quot;origen&quot;, resultado.origen());</span>
+<span class="nc" id="L45">        respuesta.put(&quot;cantidad&quot;, resultado.feriados().size());</span>
+<span class="nc" id="L46">        respuesta.put(&quot;feriados&quot;, resultado.feriados());</span>
+<span class="nc" id="L47">        return ResponseEntity.ok(respuesta);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

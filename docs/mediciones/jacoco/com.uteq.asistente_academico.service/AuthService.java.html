@@ -37,12 +37,21 @@ import javax.crypto.SecretKey;
 <span class="fc" id="L37">                .getSubject();</span>
     }
 
+    public String obtenerRolDelToken(String token) {
+<span class="fc" id="L41">        return Jwts.parser()</span>
+<span class="fc" id="L42">                .verifyWith(getKey())</span>
+<span class="fc" id="L43">                .build()</span>
+<span class="fc" id="L44">                .parseSignedClaims(token)</span>
+<span class="fc" id="L45">                .getPayload()</span>
+<span class="fc" id="L46">                .get(&quot;rol&quot;, String.class);</span>
+    }
+
     public boolean validarToken(String token) {
         try {
-<span class="fc" id="L42">            Jwts.parser().verifyWith(getKey()).build().parseSignedClaims(token);</span>
-<span class="fc" id="L43">            return true;</span>
-<span class="fc" id="L44">        } catch (Exception e) {</span>
-<span class="fc" id="L45">            return false;</span>
+<span class="fc" id="L51">            Jwts.parser().verifyWith(getKey()).build().parseSignedClaims(token);</span>
+<span class="fc" id="L52">            return true;</span>
+<span class="fc" id="L53">        } catch (Exception e) {</span>
+<span class="fc" id="L54">            return false;</span>
         }
     }
 }

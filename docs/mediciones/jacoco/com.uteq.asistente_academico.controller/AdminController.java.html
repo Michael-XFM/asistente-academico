@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AdminController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">com.uteq.asistente_academico.controller</a> &gt; <span class="el_source">AdminController.java</span></div><h1>AdminController.java</h1><pre class="source lang-java linenums">package com.uteq.asistente_academico.controller;
+
+import com.uteq.asistente_academico.entity.Tarea;
+import com.uteq.asistente_academico.repository.TareaRepository;
+import com.uteq.asistente_academico.repository.UsuarioRepository;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+
+/**
+ * Endpoints de administracion, todos restringidos al rol ADMIN via
+ * @PreAuthorize. A diferencia de TareaController/DashboardController
+ * (donde cada usuario solo ve SUS propios datos, resueltos desde el
+ * JWT), aqui el proposito es exactamente lo opuesto: dar visibilidad y
+ * gestion sobre los datos de TODOS los usuarios, por lo que el acceso
+ * no puede depender de &quot;a quien pertenece el recurso&quot; sino del rol.
+ *
+ * Se eligieron estos tres endpoints porque son las operaciones tipicas
+ * de un panel de administracion (listar usuarios, dar de baja una
+ * cuenta, supervisar la actividad de tareas de todo el sistema) y
+ * porque exponerlos sin @PreAuthorize seria una escalada de privilegios
+ * inmediata: cualquier ESTUDIANTE autenticado podria ver o borrar
+ * cuentas ajenas.
+ */
+@RestController
+@RequestMapping(&quot;/api/admin&quot;)
+@CrossOrigin(origins = {&quot;http://localhost:8080&quot;, &quot;http://localhost&quot;})
+<span class="fc" id="L38">public class AdminController {</span>
+
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private TareaRepository tareaRepository;
+
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @GetMapping(&quot;/usuarios&quot;)
+    public ResponseEntity&lt;?&gt; listarUsuarios() {
+        // Usuario.contrasena tiene @JsonIgnore, asi que el hash nunca
+        // sale en esta respuesta aunque se devuelva la entidad completa.
+<span class="nc" id="L51">        return ResponseEntity.ok(usuarioRepository.findAll());</span>
+    }
+
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @DeleteMapping(&quot;/usuarios/{id}&quot;)
+    public ResponseEntity&lt;?&gt; eliminarUsuario(HttpServletRequest request, @PathVariable Integer id) {
+<span class="nc bnc" id="L57" title="All 2 branches missed.">        if (!usuarioRepository.existsById(id)) {</span>
+<span class="nc" id="L58">            ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+                    HttpStatus.NOT_FOUND, &quot;No existe un usuario con id &quot; + id + &quot;.&quot;);
+<span class="nc" id="L60">            problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/usuario-no-encontrado&quot;));</span>
+<span class="nc" id="L61">            problema.setTitle(&quot;Usuario no encontrado&quot;);</span>
+<span class="nc" id="L62">            problema.setInstance(URI.create(request.getRequestURI()));</span>
+<span class="nc" id="L63">            return ResponseEntity.status(HttpStatus.NOT_FOUND)</span>
+<span class="nc" id="L64">                    .contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
+        }
+<span class="nc" id="L66">        usuarioRepository.deleteById(id);</span>
+<span class="nc" id="L67">        return ResponseEntity.noContent().build();</span>
+    }
+
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @GetMapping(&quot;/tareas&quot;)
+    public ResponseEntity&lt;Page&lt;Tarea&gt;&gt; listarTodasLasTareas(
+            @RequestParam(defaultValue = &quot;0&quot;) int page,
+            @RequestParam(defaultValue = &quot;10&quot;) int size) {
+<span class="nc" id="L75">        Pageable pageable = PageRequest.of(page, size);</span>
+<span class="nc" id="L76">        return ResponseEntity.ok(tareaRepository.findAll(pageable));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

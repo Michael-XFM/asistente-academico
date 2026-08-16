@@ -46,16 +46,26 @@ import java.util.regex.Pattern;
     @Autowired
     private LoginRateLimiterService rateLimiterService;
 
+    /**
+     * OWASP A01 (control de acceso roto / escalada de privilegios): el
+     * rol SIEMPRE se fuerza a ESTUDIANTE en el auto-registro, sin importar
+     * que el cliente envie otro valor en el body. Si no se hiciera esto,
+     * cualquiera podria registrarse con &quot;rol&quot;: &quot;ADMIN&quot; y obtener acceso a
+     * los endpoints protegidos con @PreAuthorize(&quot;hasRole('ADMIN')&quot;). La
+     * creacion de administradores queda fuera de este endpoint publico
+     * (se hace por seed de base de datos, ver db/seed.sql).
+     */
     @PostMapping(&quot;/registro&quot;)
     public ResponseEntity&lt;?&gt; registro(@RequestBody Usuario usuario) {
         try {
-<span class="nc" id="L52">            Usuario nuevo = usuarioService.registrar(usuario);</span>
-<span class="nc" id="L53">            Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
-<span class="nc" id="L54">            response.put(&quot;mensaje&quot;, &quot;Usuario registrado exitosamente&quot;);</span>
-<span class="nc" id="L55">            response.put(&quot;usuario&quot;, nuevo.getEmail());</span>
-<span class="nc" id="L56">            return ResponseEntity.ok(response);</span>
-<span class="nc" id="L57">        } catch (Exception e) {</span>
-<span class="nc" id="L58">            return ResponseEntity.badRequest().body(&quot;Error al registrar: &quot; + e.getMessage());</span>
+<span class="nc" id="L61">            usuario.setRol(&quot;ESTUDIANTE&quot;);</span>
+<span class="nc" id="L62">            Usuario nuevo = usuarioService.registrar(usuario);</span>
+<span class="nc" id="L63">            Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L64">            response.put(&quot;mensaje&quot;, &quot;Usuario registrado exitosamente&quot;);</span>
+<span class="nc" id="L65">            response.put(&quot;usuario&quot;, nuevo.getEmail());</span>
+<span class="nc" id="L66">            return ResponseEntity.ok(response);</span>
+<span class="nc" id="L67">        } catch (Exception e) {</span>
+<span class="nc" id="L68">            return ResponseEntity.badRequest().body(&quot;Error al registrar: &quot; + e.getMessage());</span>
         }
     }
 
@@ -79,99 +89,99 @@ import java.util.regex.Pattern;
      */
     @PostMapping(&quot;/login&quot;)
     public ResponseEntity&lt;?&gt; login(@RequestBody Map&lt;String, String&gt; credenciales, HttpServletRequest request) {
-<span class="fc" id="L82">        String ip = obtenerIpCliente(request);</span>
-<span class="fc" id="L83">        String email = credenciales.get(&quot;email&quot;);</span>
-<span class="fc" id="L84">        String contrasena = credenciales.get(&quot;contrasena&quot;);</span>
-<span class="fc" id="L85">        String instancia = request.getRequestURI();</span>
+<span class="fc" id="L92">        String ip = obtenerIpCliente(request);</span>
+<span class="fc" id="L93">        String email = credenciales.get(&quot;email&quot;);</span>
+<span class="fc" id="L94">        String contrasena = credenciales.get(&quot;contrasena&quot;);</span>
+<span class="fc" id="L95">        String instancia = request.getRequestURI();</span>
 
-<span class="pc bpc" id="L87" title="1 of 4 branches missed.">        if (email == null || !EMAIL_VALIDO.matcher(email).matches()) {</span>
-<span class="fc" id="L88">            log.warn(&quot;LOGIN RECHAZADO | ip={} | timestamp={} | motivo=formato de email invalido | valor_recibido={}&quot;,</span>
-<span class="fc" id="L89">                    ip, Instant.now(), email);</span>
-<span class="fc" id="L90">            ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+<span class="pc bpc" id="L97" title="1 of 4 branches missed.">        if (email == null || !EMAIL_VALIDO.matcher(email).matches()) {</span>
+<span class="fc" id="L98">            log.warn(&quot;LOGIN RECHAZADO | ip={} | timestamp={} | motivo=formato de email invalido | valor_recibido={}&quot;,</span>
+<span class="fc" id="L99">                    ip, Instant.now(), email);</span>
+<span class="fc" id="L100">            ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
                     HttpStatus.UNPROCESSABLE_ENTITY,
                     &quot;El campo 'email' no tiene un formato de correo valido.&quot;
             );
-<span class="fc" id="L94">            problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/formato-invalido&quot;));</span>
-<span class="fc" id="L95">            problema.setTitle(&quot;Formato de entrada invalido&quot;);</span>
-<span class="fc" id="L96">            problema.setInstance(URI.create(instancia));</span>
-<span class="fc" id="L97">            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)</span>
-<span class="fc" id="L98">                    .contentType(MediaType.APPLICATION_PROBLEM_JSON)</span>
-<span class="fc" id="L99">                    .body(problema);</span>
+<span class="fc" id="L104">            problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/formato-invalido&quot;));</span>
+<span class="fc" id="L105">            problema.setTitle(&quot;Formato de entrada invalido&quot;);</span>
+<span class="fc" id="L106">            problema.setInstance(URI.create(instancia));</span>
+<span class="fc" id="L107">            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)</span>
+<span class="fc" id="L108">                    .contentType(MediaType.APPLICATION_PROBLEM_JSON)</span>
+<span class="fc" id="L109">                    .body(problema);</span>
         }
 
-<span class="fc bfc" id="L102" title="All 2 branches covered.">        if (rateLimiterService.estaBloqueado(ip)) {</span>
-<span class="fc" id="L103">            log.warn(&quot;LOGIN BLOQUEADO | ip={} | timestamp={} | motivo=demasiados intentos fallidos&quot;, ip, Instant.now());</span>
-<span class="fc" id="L104">            ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">        if (rateLimiterService.estaBloqueado(ip)) {</span>
+<span class="fc" id="L113">            log.warn(&quot;LOGIN BLOQUEADO | ip={} | timestamp={} | motivo=demasiados intentos fallidos&quot;, ip, Instant.now());</span>
+<span class="fc" id="L114">            ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
                     HttpStatus.TOO_MANY_REQUESTS,
                     &quot;Demasiados intentos fallidos. Intenta de nuevo mas tarde.&quot;
             );
-<span class="fc" id="L108">            problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/demasiados-intentos&quot;));</span>
-<span class="fc" id="L109">            problema.setTitle(&quot;Limite de intentos excedido&quot;);</span>
-<span class="fc" id="L110">            problema.setInstance(URI.create(instancia));</span>
-<span class="fc" id="L111">            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)</span>
-<span class="fc" id="L112">                    .contentType(MediaType.APPLICATION_PROBLEM_JSON)</span>
-<span class="fc" id="L113">                    .body(problema);</span>
+<span class="fc" id="L118">            problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/demasiados-intentos&quot;));</span>
+<span class="fc" id="L119">            problema.setTitle(&quot;Limite de intentos excedido&quot;);</span>
+<span class="fc" id="L120">            problema.setInstance(URI.create(instancia));</span>
+<span class="fc" id="L121">            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)</span>
+<span class="fc" id="L122">                    .contentType(MediaType.APPLICATION_PROBLEM_JSON)</span>
+<span class="fc" id="L123">                    .body(problema);</span>
         }
 
-<span class="fc" id="L116">        Optional&lt;Usuario&gt; usuario = usuarioService.buscarPorEmail(email);</span>
+<span class="fc" id="L126">        Optional&lt;Usuario&gt; usuario = usuarioService.buscarPorEmail(email);</span>
 
-<span class="pc bpc" id="L118" title="1 of 2 branches missed.">        if (usuario.isEmpty()) {</span>
-<span class="nc" id="L119">            rateLimiterService.registrarIntentoFallido(ip);</span>
-<span class="nc" id="L120">            log.warn(&quot;LOGIN FALLIDO | ip={} | timestamp={} | sub={} | motivo=usuario no encontrado | intento={}&quot;,</span>
-<span class="nc" id="L121">                    ip, Instant.now(), email, rateLimiterService.intentosActuales(ip));</span>
-<span class="nc" id="L122">            return construirErrorCredenciales(instancia);</span>
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">        if (usuario.isEmpty()) {</span>
+<span class="nc" id="L129">            rateLimiterService.registrarIntentoFallido(ip);</span>
+<span class="nc" id="L130">            log.warn(&quot;LOGIN FALLIDO | ip={} | timestamp={} | sub={} | motivo=usuario no encontrado | intento={}&quot;,</span>
+<span class="nc" id="L131">                    ip, Instant.now(), email, rateLimiterService.intentosActuales(ip));</span>
+<span class="nc" id="L132">            return construirErrorCredenciales(instancia);</span>
         }
 
-<span class="fc bfc" id="L125" title="All 2 branches covered.">        if (!usuarioService.verificarContrasena(contrasena, usuario.get().getContrasena())) {</span>
-<span class="fc" id="L126">            rateLimiterService.registrarIntentoFallido(ip);</span>
-<span class="fc" id="L127">            log.warn(&quot;LOGIN FALLIDO | ip={} | timestamp={} | sub={} | motivo=contrasena incorrecta | intento={}&quot;,</span>
-<span class="fc" id="L128">                    ip, Instant.now(), email, rateLimiterService.intentosActuales(ip));</span>
-<span class="fc" id="L129">            return construirErrorCredenciales(instancia);</span>
+<span class="fc bfc" id="L135" title="All 2 branches covered.">        if (!usuarioService.verificarContrasena(contrasena, usuario.get().getContrasena())) {</span>
+<span class="fc" id="L136">            rateLimiterService.registrarIntentoFallido(ip);</span>
+<span class="fc" id="L137">            log.warn(&quot;LOGIN FALLIDO | ip={} | timestamp={} | sub={} | motivo=contrasena incorrecta | intento={}&quot;,</span>
+<span class="fc" id="L138">                    ip, Instant.now(), email, rateLimiterService.intentosActuales(ip));</span>
+<span class="fc" id="L139">            return construirErrorCredenciales(instancia);</span>
         }
 
-<span class="fc" id="L132">        rateLimiterService.registrarLoginExitoso(ip);</span>
-<span class="fc" id="L133">        log.info(&quot;LOGIN EXITOSO | ip={} | timestamp={} | sub={}&quot;, ip, Instant.now(), email);</span>
+<span class="fc" id="L142">        rateLimiterService.registrarLoginExitoso(ip);</span>
+<span class="fc" id="L143">        log.info(&quot;LOGIN EXITOSO | ip={} | timestamp={} | sub={}&quot;, ip, Instant.now(), email);</span>
 
-<span class="fc" id="L135">        String token = authService.generarToken(usuario.get());</span>
-<span class="fc" id="L136">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
-<span class="fc" id="L137">        response.put(&quot;token&quot;, token);</span>
-<span class="fc" id="L138">        response.put(&quot;rol&quot;, usuario.get().getRol());</span>
-<span class="fc" id="L139">        response.put(&quot;nombre&quot;, usuario.get().getNombre());</span>
-<span class="fc" id="L140">        return ResponseEntity.ok(response);</span>
+<span class="fc" id="L145">        String token = authService.generarToken(usuario.get());</span>
+<span class="fc" id="L146">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L147">        response.put(&quot;token&quot;, token);</span>
+<span class="fc" id="L148">        response.put(&quot;rol&quot;, usuario.get().getRol());</span>
+<span class="fc" id="L149">        response.put(&quot;nombre&quot;, usuario.get().getNombre());</span>
+<span class="fc" id="L150">        return ResponseEntity.ok(response);</span>
     }
 
     @PostMapping(&quot;/logout&quot;)
     public ResponseEntity&lt;?&gt; logout(@RequestHeader(&quot;Authorization&quot;) String authHeader) {
-<span class="pc bpc" id="L145" title="2 of 4 branches missed.">        if (authHeader != null &amp;&amp; authHeader.startsWith(&quot;Bearer &quot;)) {</span>
-<span class="fc" id="L146">            String token = authHeader.substring(7);</span>
-<span class="fc" id="L147">            redisService.agregarTokenBlacklist(token, 86400000);</span>
-<span class="fc" id="L148">            return ResponseEntity.ok(&quot;Sesión cerrada exitosamente&quot;);</span>
+<span class="pc bpc" id="L155" title="2 of 4 branches missed.">        if (authHeader != null &amp;&amp; authHeader.startsWith(&quot;Bearer &quot;)) {</span>
+<span class="fc" id="L156">            String token = authHeader.substring(7);</span>
+<span class="fc" id="L157">            redisService.agregarTokenBlacklist(token, 86400000);</span>
+<span class="fc" id="L158">            return ResponseEntity.ok(&quot;Sesión cerrada exitosamente&quot;);</span>
         }
-<span class="nc" id="L150">        return ResponseEntity.badRequest().body(&quot;Token no proporcionado&quot;);</span>
+<span class="nc" id="L160">        return ResponseEntity.badRequest().body(&quot;Token no proporcionado&quot;);</span>
     }
 
     private ResponseEntity&lt;ProblemDetail&gt; construirErrorCredenciales(String instancia) {
         // Mensaje generico a proposito: no distingue &quot;usuario no
         // encontrado&quot; de &quot;contrasena incorrecta&quot; en la respuesta al
         // cliente, para no facilitar enumeracion de usuarios validos.
-<span class="fc" id="L157">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+<span class="fc" id="L167">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
                 HttpStatus.BAD_REQUEST,
                 &quot;Email o contraseña incorrectos.&quot;
         );
-<span class="fc" id="L161">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/credenciales-invalidas&quot;));</span>
-<span class="fc" id="L162">        problema.setTitle(&quot;Credenciales invalidas&quot;);</span>
-<span class="fc" id="L163">        problema.setInstance(URI.create(instancia));</span>
-<span class="fc" id="L164">        return ResponseEntity.status(HttpStatus.BAD_REQUEST)</span>
-<span class="fc" id="L165">                .contentType(MediaType.APPLICATION_PROBLEM_JSON)</span>
-<span class="fc" id="L166">                .body(problema);</span>
+<span class="fc" id="L171">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/credenciales-invalidas&quot;));</span>
+<span class="fc" id="L172">        problema.setTitle(&quot;Credenciales invalidas&quot;);</span>
+<span class="fc" id="L173">        problema.setInstance(URI.create(instancia));</span>
+<span class="fc" id="L174">        return ResponseEntity.status(HttpStatus.BAD_REQUEST)</span>
+<span class="fc" id="L175">                .contentType(MediaType.APPLICATION_PROBLEM_JSON)</span>
+<span class="fc" id="L176">                .body(problema);</span>
     }
 
     private String obtenerIpCliente(HttpServletRequest request) {
-<span class="fc" id="L170">        String forwarded = request.getHeader(&quot;X-Forwarded-For&quot;);</span>
-<span class="pc bpc" id="L171" title="2 of 4 branches missed.">        if (forwarded != null &amp;&amp; !forwarded.isBlank()) {</span>
-<span class="fc" id="L172">            return forwarded.split(&quot;,&quot;)[0].trim();</span>
+<span class="fc" id="L180">        String forwarded = request.getHeader(&quot;X-Forwarded-For&quot;);</span>
+<span class="pc bpc" id="L181" title="2 of 4 branches missed.">        if (forwarded != null &amp;&amp; !forwarded.isBlank()) {</span>
+<span class="fc" id="L182">            return forwarded.split(&quot;,&quot;)[0].trim();</span>
         }
-<span class="nc" id="L174">        return request.getRemoteAddr();</span>
+<span class="nc" id="L184">        return request.getRemoteAddr();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

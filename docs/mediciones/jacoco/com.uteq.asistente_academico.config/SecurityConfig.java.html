@@ -4,6 +4,7 @@ import com.uteq.asistente_academico.security.JwtAuthFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -12,47 +13,70 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
-<span class="fc" id="L15">public class SecurityConfig {</span>
+// Habilita @PreAuthorize en los controladores (Bloque de roles y permisos):
+// permite proteger endpoints puntuales segun el rol del usuario autenticado,
+// ademas de las reglas generales por ruta ya definidas mas abajo. El 403
+// que arroja @PreAuthorize se formatea como ProblemDetail en
+// GlobalExceptionHandler.manejarAccesoDenegado(...), no aqui: la excepcion
+// se lanza dentro del propio DispatcherServlet (durante la invocacion del
+// metodo del controlador), por lo que el @RestControllerAdvice la resuelve
+// antes de que llegue al filtro de seguridad.
+@EnableMethodSecurity
+<span class="fc" id="L25">public class SecurityConfig {</span>
 
     @Autowired
     private JwtAuthFilter jwtAuthFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-<span class="fc" id="L22">        http</span>
-<span class="fc" id="L23">                .csrf(csrf -&gt; csrf.disable())</span>
-<span class="fc" id="L24">                .sessionManagement(session -&gt; session</span>
-<span class="fc" id="L25">                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))</span>
-<span class="fc" id="L26">                .authorizeHttpRequests(auth -&gt; auth</span>
-<span class="fc" id="L27">                        .requestMatchers(&quot;/api/auth/**&quot;).permitAll()</span>
-<span class="fc" id="L28">                        .requestMatchers(&quot;/*.html&quot;, &quot;/css/**&quot;, &quot;/js/**&quot;, &quot;/index.html&quot;).permitAll()</span>
-<span class="fc" id="L29">                        .anyRequest().authenticated()</span>
+<span class="fc" id="L32">        http</span>
+<span class="fc" id="L33">                .cors(cors -&gt; {})</span>
+<span class="fc" id="L34">                .csrf(csrf -&gt; csrf.disable())</span>
+<span class="fc" id="L35">                .sessionManagement(session -&gt; session</span>
+<span class="fc" id="L36">                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))</span>
+<span class="fc" id="L37">                .authorizeHttpRequests(auth -&gt; auth</span>
+<span class="fc" id="L38">                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, &quot;/**&quot;).permitAll()</span>
+<span class="fc" id="L39">                        .requestMatchers(&quot;/api/auth/**&quot;).permitAll()</span>
+<span class="fc" id="L40">                        .requestMatchers(&quot;/*.html&quot;, &quot;/css/**&quot;, &quot;/js/**&quot;, &quot;/index.html&quot;).permitAll()</span>
+                        // Documentacion OpenAPI/Swagger: publica a proposito, igual que en
+                        // cualquier API publica bien documentada. No expone datos, solo el
+                        // contrato de la API (Bloque B.1 de esta entrega).
+<span class="fc" id="L44">                        .requestMatchers(</span>
+                                &quot;/v3/api-docs/**&quot;,
+                                &quot;/swagger-ui/**&quot;,
+                                &quot;/swagger-ui.html&quot;
+<span class="fc" id="L48">                        ).permitAll()</span>
+<span class="fc" id="L49">                        .anyRequest().authenticated()</span>
                 )
                 // OWASP A05 (mala configuracion de seguridad): cabeceras
                 // explicitas de defensa en profundidad. X-Content-Type-Options
                 // y X-Frame-Options ya vienen activas por defecto en Spring
                 // Security, se dejan explicitas aqui para que quede
                 // documentado en el codigo, no solo &quot;porque asi viene&quot;.
-<span class="fc" id="L36">                .headers(headers -&gt; headers</span>
-<span class="fc" id="L37">                        .contentTypeOptions(contentTypeOptions -&gt; {})</span>
-<span class="fc" id="L38">                        .frameOptions(frameOptions -&gt; frameOptions.deny())</span>
-<span class="fc" id="L39">                        .contentSecurityPolicy(csp -&gt; csp</span>
-<span class="fc" id="L40">                                .policyDirectives(</span>
+<span class="fc" id="L56">                .headers(headers -&gt; headers</span>
+<span class="fc" id="L57">                        .contentTypeOptions(contentTypeOptions -&gt; {})</span>
+<span class="fc" id="L58">                        .frameOptions(frameOptions -&gt; frameOptions.deny())</span>
+<span class="fc" id="L59">                        .contentSecurityPolicy(csp -&gt; csp</span>
+<span class="fc" id="L60">                                .policyDirectives(</span>
                                         &quot;default-src 'self'; &quot; +
                                                 &quot;frame-ancestors 'none'; &quot; +
                                                 &quot;style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; &quot; +
                                                 &quot;font-src 'self' https://fonts.gstatic.com; &quot; +
-                                                &quot;script-src 'self' 'unsafe-inline'&quot;
+                                                &quot;script-src 'self' 'unsafe-inline'; &quot; +
+                                                // Swagger UI (springdoc) dibuja sus iconos como SVG
+                                                // inline en data URIs; sin este permiso, el navegador
+                                                // los bloquea por CSP aunque la pagina siga funcionando.
+                                                &quot;img-src 'self' data:&quot;
                                 ))
                         // HSTS solo tiene efecto real sobre HTTPS; se declara
                         // igual para cuando el sistema tenga TLS (ver A02,
                         // pendiente en esta entrega — ver docs/mediciones/sec/).
-<span class="fc" id="L50">                        .httpStrictTransportSecurity(hsts -&gt; hsts</span>
-<span class="fc" id="L51">                                .includeSubDomains(true)</span>
-<span class="fc" id="L52">                                .maxAgeInSeconds(31536000))</span>
+<span class="fc" id="L74">                        .httpStrictTransportSecurity(hsts -&gt; hsts</span>
+<span class="fc" id="L75">                                .includeSubDomains(true)</span>
+<span class="fc" id="L76">                                .maxAgeInSeconds(31536000))</span>
                 )
-<span class="fc" id="L54">                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);</span>
-<span class="fc" id="L55">        return http.build();</span>
+<span class="fc" id="L78">                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);</span>
+<span class="fc" id="L79">        return http.build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
