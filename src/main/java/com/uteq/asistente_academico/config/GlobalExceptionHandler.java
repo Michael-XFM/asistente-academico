@@ -4,6 +4,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
+import com.uteq.asistente_academico.exception.ApiExternaException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -54,6 +55,22 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         );
         problema.setType(URI.create("https://asistente-academico.uteq.edu.ec/errores/rol-insuficiente"));
         problema.setTitle("Acceso prohibido");
+        problema.setInstance(URI.create(request.getDescription(false).replace("uri=", "")));
+        return problema;
+    }
+
+    /**
+     * Fallo al consumir una API externa (timeout, 4xx o 5xx de la API
+     * de terceros), lanzada desde FeriadosService. El status HTTP que
+     * corresponde devolver ya viene decidido en la excepcion (400 si la
+     * culpa es de los parametros de entrada, 502/504 si la culpa es del
+     * servicio externo) — ver ApiExternaException.
+     */
+    @ExceptionHandler(ApiExternaException.class)
+    public ProblemDetail manejarApiExterna(ApiExternaException ex, WebRequest request) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());
+        problema.setType(URI.create("https://asistente-academico.uteq.edu.ec/errores/api-externa"));
+        problema.setTitle("Fallo en servicio externo");
         problema.setInstance(URI.create(request.getDescription(false).replace("uri=", "")));
         return problema;
     }
