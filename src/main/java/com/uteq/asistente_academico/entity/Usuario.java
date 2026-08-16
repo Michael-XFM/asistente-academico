@@ -3,7 +3,7 @@ package com.uteq.asistente_academico.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 
 @Data
@@ -22,7 +22,13 @@ public class Usuario {
     @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;
 
-    @JsonIgnore
+    // WRITE_ONLY (no @JsonIgnore): el hash debe poder LLEGAR en el body de
+    // POST /api/auth/registro, pero nunca debe SALIR en ninguna respuesta
+    // JSON. @JsonIgnore bloqueaba las dos direcciones a la vez y rompia el
+    // registro por completo (Jackson deserializaba "contrasena" como null,
+    // BCryptPasswordEncoder.encode(null) explotaba con "rawPassword cannot
+    // be null"). WRITE_ONLY es el idiom estandar para este caso.
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(name = "contraseña", nullable = false, length = 255)
     private String contrasena;
 
