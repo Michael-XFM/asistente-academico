@@ -1,0 +1,318 @@
+{
+  "info": {
+    "_postman_id": "a3f2e6d0-1b3a-4a6e-9c2a-9f6b2e2e6a11",
+    "name": "Asistente Académico UTEQ — API",
+    "description": "Colección de la API REST del asistente académico (Spring Boot 3.5 / Java 21). Cubre autenticación JWT, tareas, dashboard, administración por rol y consumo de API externa con caché.\n\nFlujo recomendado: correr primero 'Auth > Login (éxito)' — guarda el token automáticamente en la variable de colección `token` mediante un test script, así todos los demás requests protegidos lo reutilizan sin copiar/pegar nada.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://localhost:8443", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "tareaId", "value": "1", "type": "string" },
+    { "key": "usuarioId", "value": "2", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Registro (éxito)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Estudiante Postman\",\n  \"email\": \"estudiante.postman@uteq.edu.ec\",\n  \"contrasena\": \"Test123!\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/registro", "host": ["{{baseUrl}}"], "path": ["api", "auth", "registro"] },
+            "description": "Caso de éxito. El campo 'rol' NO se envía a propósito: el backend lo fuerza siempre a ESTUDIANTE, sin importar lo que mande el cliente (fix de escalada de privilegios)."
+          }
+        },
+        {
+          "name": "Registro (rol=ADMIN en el body se ignora)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Intento De Escalada\",\n  \"email\": \"intento.escalada@uteq.edu.ec\",\n  \"contrasena\": \"Test123!\",\n  \"rol\": \"ADMIN\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/registro", "host": ["{{baseUrl}}"], "path": ["api", "auth", "registro"] },
+            "description": "Demuestra el control de acceso: aunque el body pide rol=ADMIN, el usuario queda creado como ESTUDIANTE. Verificar logueando con este usuario y mirando el campo 'rol' de la respuesta de login."
+          }
+        },
+        {
+          "name": "Login (éxito)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const body = pm.response.json();",
+                  "    pm.collectionVariables.set('token', body.token);",
+                  "    pm.test('respuesta trae token', () => pm.expect(body.token).to.be.a('string'));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@uteq.edu.ec\",\n  \"contrasena\": \"Admin123!\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] },
+            "description": "Usuario admin seedeado (ver db/seed.sql). El test script guarda el token en la variable de colección 'token' para el resto de los requests."
+          }
+        },
+        {
+          "name": "Login (credenciales inválidas)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@uteq.edu.ec\",\n  \"contrasena\": \"clave-incorrecta\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] },
+            "description": "Caso de error: 400 con ProblemDetail. Mensaje genérico a propósito (no distingue 'usuario no existe' de 'contraseña incorrecta')."
+          }
+        },
+        {
+          "name": "Login (formato de email inválido)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"' OR '1'='1\",\n  \"contrasena\": \"x\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] },
+            "description": "Caso de validación: 422. El payload de inyección se rechaza por formato antes de tocar la base de datos (OWASP A03)."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "auth", "logout"] },
+            "description": "Revoca el token actual agregándolo a la blacklist de Redis."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tareas",
+      "item": [
+        {
+          "name": "Listar tareas (propias, paginado)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/tareas?page=0&size=10",
+              "host": ["{{baseUrl}}"], "path": ["api", "tareas"],
+              "query": [{ "key": "page", "value": "0" }, { "key": "size", "value": "10" }]
+            },
+            "description": "Siempre filtra por el usuario del JWT, nunca por un id enviado por el cliente."
+          }
+        },
+        {
+          "name": "Crear tarea (éxito)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Entregable Postman\",\n  \"descripcion\": \"Creada desde la colección de Postman\",\n  \"fechaEntrega\": \"2026-12-01\",\n  \"materia\": { \"idMateria\": 1 }\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/tareas", "host": ["{{baseUrl}}"], "path": ["api", "tareas"] }
+          }
+        },
+        {
+          "name": "Buscar tarea por ID (éxito)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/tareas/{{tareaId}}", "host": ["{{baseUrl}}"], "path": ["api", "tareas", "{{tareaId}}"] }
+          }
+        },
+        {
+          "name": "Buscar tarea por ID (no encontrada)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/tareas/999999", "host": ["{{baseUrl}}"], "path": ["api", "tareas", "999999"] },
+            "description": "Caso de error: 404 ProblemDetail."
+          }
+        },
+        {
+          "name": "Actualizar tarea",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Entregable Postman (editado)\",\n  \"descripcion\": \"Descripción actualizada\",\n  \"fechaEntrega\": \"2026-12-15\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/tareas/{{tareaId}}", "host": ["{{baseUrl}}"], "path": ["api", "tareas", "{{tareaId}}"] }
+          }
+        },
+        {
+          "name": "Eliminar tarea",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/tareas/{{tareaId}}", "host": ["{{baseUrl}}"], "path": ["api", "tareas", "{{tareaId}}"] }
+          }
+        },
+        {
+          "name": "Sin token (rechazado)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/tareas", "host": ["{{baseUrl}}"], "path": ["api", "tareas"] },
+            "description": "Caso de autorización: sin Authorization header, la API responde 403 (anyRequest().authenticated())."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Obtener dashboard",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/dashboard", "host": ["{{baseUrl}}"], "path": ["api", "dashboard"] },
+            "description": "Resumen académico + tareas pendientes del usuario autenticado (fn_obtener_resumen_academico + fn_listar_tareas_pendientes)."
+          }
+        },
+        {
+          "name": "Marcar avisos leídos",
+          "request": {
+            "method": "PUT",
+            "url": { "raw": "{{baseUrl}}/api/dashboard/avisos/marcar-leidos", "host": ["{{baseUrl}}"], "path": ["api", "dashboard", "avisos", "marcar-leidos"] },
+            "description": "Actualización masiva vía fn_marcar_avisos_leidos, siempre sobre el usuario del JWT."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin (rol ADMIN)",
+      "item": [
+        {
+          "name": "Listar usuarios (como ADMIN, éxito)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/admin/usuarios", "host": ["{{baseUrl}}"], "path": ["api", "admin", "usuarios"] },
+            "description": "Requiere @PreAuthorize(\"hasRole('ADMIN')\"). Correr con el token de 'Auth > Login (éxito)' (admin@uteq.edu.ec)."
+          }
+        },
+        {
+          "name": "Listar usuarios (rol insuficiente, 403)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer PEGAR_AQUI_TOKEN_DE_UN_ESTUDIANTE", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/usuarios", "host": ["{{baseUrl}}"], "path": ["api", "admin", "usuarios"] },
+            "description": "Caso de autorización: logueate con un usuario ESTUDIANTE (ej. el creado en 'Registro (éxito)'), pegá su token acá y confirmá el 403 con ProblemDetail 'rol-insuficiente'."
+          }
+        },
+        {
+          "name": "Listar todas las tareas (ADMIN)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/tareas?page=0&size=10",
+              "host": ["{{baseUrl}}"], "path": ["api", "admin", "tareas"],
+              "query": [{ "key": "page", "value": "0" }, { "key": "size", "value": "10" }]
+            },
+            "description": "A diferencia de GET /api/tareas (que filtra por el usuario del JWT), este endpoint devuelve las tareas de TODOS los usuarios."
+          }
+        },
+        {
+          "name": "Eliminar usuario (éxito)",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/admin/usuarios/{{usuarioId}}", "host": ["{{baseUrl}}"], "path": ["api", "admin", "usuarios", "{{usuarioId}}"] },
+            "description": "204 sin body. Usar el id de un usuario de prueba, no el del admin (id 1)."
+          }
+        },
+        {
+          "name": "Eliminar usuario (no encontrado)",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/admin/usuarios/999999", "host": ["{{baseUrl}}"], "path": ["api", "admin", "usuarios", "999999"] },
+            "description": "Caso de error: 404 ProblemDetail."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Feriados (API externa + caché Redis)",
+      "item": [
+        {
+          "name": "Feriados por defecto (año actual, EC)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/feriados", "host": ["{{baseUrl}}"], "path": ["api", "feriados"] }
+          }
+        },
+        {
+          "name": "Feriados 2026 EC — 1ra llamada (miss, origen=API_EXTERNA)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/feriados?anio=2026&pais=EC",
+              "host": ["{{baseUrl}}"], "path": ["api", "feriados"],
+              "query": [{ "key": "anio", "value": "2026" }, { "key": "pais", "value": "EC" }]
+            },
+            "description": "Correr esta y la siguiente en secuencia: la primera pega a Nager.Date (origen=API_EXTERNA, más lenta), la segunda pega a Redis (origen=CACHE, notablemente más rápida)."
+          }
+        },
+        {
+          "name": "Feriados 2026 EC — 2da llamada (hit, origen=CACHE)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/feriados?anio=2026&pais=EC",
+              "host": ["{{baseUrl}}"], "path": ["api", "feriados"],
+              "query": [{ "key": "anio", "value": "2026" }, { "key": "pais", "value": "EC" }]
+            }
+          }
+        },
+        {
+          "name": "Feriados (código de país inválido, 400)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/feriados?anio=2026&pais=ZZ",
+              "host": ["{{baseUrl}}"], "path": ["api", "feriados"],
+              "query": [{ "key": "anio", "value": "2026" }, { "key": "pais", "value": "ZZ" }]
+            },
+            "description": "Caso de error: la API externa rechaza el país, se traduce a 400 ProblemDetail propio (no se filtra el error crudo de Nager.Date)."
+          }
+        },
+        {
+          "name": "Feriados (sin token, rechazado)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/feriados?anio=2026&pais=EC", "host": ["{{baseUrl}}"], "path": ["api", "feriados"], "query": [{ "key": "anio", "value": "2026" }, { "key": "pais", "value": "EC" }] }
+          }
+        }
+      ]
+    }
+  ]
+}
