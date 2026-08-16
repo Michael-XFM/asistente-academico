@@ -37,6 +37,15 @@ public class AuthService {
                 .getSubject();
     }
 
+    public String obtenerRolDelToken(String token) {
+        return Jwts.parser()
+                .verifyWith(getKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("rol", String.class);
+    }
+
     public boolean validarToken(String token) {
         try {
             Jwts.parser().verifyWith(getKey()).build().parseSignedClaims(token);

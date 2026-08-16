@@ -4,6 +4,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
@@ -33,6 +34,26 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         );
         problema.setType(URI.create("https://asistente-academico.uteq.edu.ec/errores/error-interno"));
         problema.setTitle("Error interno del servidor");
+        problema.setInstance(URI.create(request.getDescription(false).replace("uri=", "")));
+        return problema;
+    }
+
+    /**
+     * AccessDeniedException la lanza el interceptor de @PreAuthorize
+     * (Bloque de roles y permisos) cuando el usuario esta autenticado
+     * pero su rol no alcanza. Necesita su propio @ExceptionHandler
+     * porque, sin este, cae en el manejarExcepcionGeneral(Exception) de
+     * arriba y se pierde el 403: el cliente veria un 500 generico en vez
+     * de un 403 explicando que le falta el rol adecuado.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail manejarAccesoDenegado(AccessDeniedException ex, WebRequest request) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(
+                HttpStatus.FORBIDDEN,
+                "Tu rol no tiene permiso para acceder a este recurso."
+        );
+        problema.setType(URI.create("https://asistente-academico.uteq.edu.ec/errores/rol-insuficiente"));
+        problema.setTitle("Acceso prohibido");
         problema.setInstance(URI.create(request.getDescription(false).replace("uri=", "")));
         return problema;
     }

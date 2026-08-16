@@ -4,6 +4,7 @@ import com.uteq.asistente_academico.security.JwtAuthFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -12,6 +13,15 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+// Habilita @PreAuthorize en los controladores (Bloque de roles y permisos):
+// permite proteger endpoints puntuales segun el rol del usuario autenticado,
+// ademas de las reglas generales por ruta ya definidas mas abajo. El 403
+// que arroja @PreAuthorize se formatea como ProblemDetail en
+// GlobalExceptionHandler.manejarAccesoDenegado(...), no aqui: la excepcion
+// se lanza dentro del propio DispatcherServlet (durante la invocacion del
+// metodo del controlador), por lo que el @RestControllerAdvice la resuelve
+// antes de que llegue al filtro de seguridad.
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Autowired

@@ -46,9 +46,19 @@ public class AuthController {
     @Autowired
     private LoginRateLimiterService rateLimiterService;
 
+    /**
+     * OWASP A01 (control de acceso roto / escalada de privilegios): el
+     * rol SIEMPRE se fuerza a ESTUDIANTE en el auto-registro, sin importar
+     * que el cliente envie otro valor en el body. Si no se hiciera esto,
+     * cualquiera podria registrarse con "rol": "ADMIN" y obtener acceso a
+     * los endpoints protegidos con @PreAuthorize("hasRole('ADMIN')"). La
+     * creacion de administradores queda fuera de este endpoint publico
+     * (se hace por seed de base de datos, ver db/seed.sql).
+     */
     @PostMapping("/registro")
     public ResponseEntity<?> registro(@RequestBody Usuario usuario) {
         try {
+            usuario.setRol("ESTUDIANTE");
             Usuario nuevo = usuarioService.registrar(usuario);
             Map<String, Object> response = new HashMap<>();
             response.put("mensaje", "Usuario registrado exitosamente");
