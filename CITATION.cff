@@ -6,14 +6,12 @@ authors:
   - family-names: "Fajardo Montes"
     given-names: "Michael Xavier"
     affiliation: "Universidad Técnica Estatal de Quevedo"
-  - family-names: "Castro Palma"
-    given-names: "Justyn Moisés"
-    affiliation: "Universidad Técnica Estatal de Quevedo"
+    orcid: "https://orcid.org/0009-0003-4097-0298"
   - family-names: "Rivera Suárez"
     given-names: "Jonathan Javier"
     affiliation: "Universidad Técnica Estatal de Quevedo"
-version: "0.9.0-rc"
-date-released: "2026-07-24"
+version: "1.0.0"
+date-released: "2026-08-16"
 license: "MIT"
 repository-code: "https://github.com/Michael-XFM/asistente-academico"
 keywords:
@@ -24,4 +22,14 @@ keywords:
   - "jwt"
   - "uteq"
 doi: "10.5281/zenodo.21798777"
-
+preferred-citation:
+  type: software
+  title: "Asistente Virtual Académico con Chatbot Híbrido"
+  authors:
+    - family-names: "Fajardo Montes"
+      given-names: "Michael Xavier"
+      orcid: "https://orcid.org/0009-0003-4097-0298"
+    - family-names: "Rivera Suárez"
+      given-names: "Jonathan Javier"
+  year: 2026
+  version: "1.0.0"
