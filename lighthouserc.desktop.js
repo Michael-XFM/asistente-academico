@@ -1,10 +1,10 @@
-// lighthouserc.js
-// Bloque C.5 - Auditoria de accesibilidad y calidad web con Lighthouse CI.
-// Perfil movil, throttling Slow 4G, umbrales minimos exigidos por la guia.
-// numberOfRuns:3 (Entrega Final exige >=3 corridas por perfil, no 1) y
-// formFactor/screenEmulation explicitos (antes se dependia del default
-// implicito de Lighthouse, que coincide con estos valores pero no
-// quedaba documentado en el propio archivo).
+// lighthouserc.desktop.js
+// Bloque C.5 - Auditoria de calidad web con Lighthouse CI, perfil desktop.
+// Complementa lighthouserc.js (perfil movil): la Entrega Final exige
+// >=3 corridas POR PERFIL (mobile y desktop por separado, 6 en total),
+// no una corrida general. formFactor + screenEmulation + throttling son
+// los valores estandar del preset "desktop" de Lighthouse (sin
+// emulacion movil, red rapida, sin desaceleracion de CPU).
 //
 // NOTA: preparado para automatizacion via lhci, pero las 6 corridas
 // reales de esta entrega (docs/mediciones/lighthouse/{mobile,desktop}/)
@@ -17,19 +17,19 @@ module.exports = {
             url: ['http://localhost/index.html'],
             numberOfRuns: 3,
             settings: {
-                formFactor: 'mobile',
+                formFactor: 'desktop',
                 screenEmulation: {
-                    mobile: true,
-                    width: 412,
-                    height: 823,
-                    deviceScaleFactor: 1.75,
+                    mobile: false,
+                    width: 1350,
+                    height: 940,
+                    deviceScaleFactor: 1,
                     disabled: false,
                 },
                 throttlingMethod: 'simulate',
                 throttling: {
-                    rttMs: 150,
-                    throughputKbps: 1638.4,
-                    cpuSlowdownMultiplier: 4,
+                    rttMs: 40,
+                    throughputKbps: 10240,
+                    cpuSlowdownMultiplier: 1,
                 },
             },
         },
@@ -43,7 +43,7 @@ module.exports = {
         },
         upload: {
             target: 'filesystem',
-            outputDir: './docs/mediciones/lighthouse/mobile',
+            outputDir: './docs/mediciones/lighthouse/desktop',
         },
     },
 };
