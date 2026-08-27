@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Asistente Virtual Académico</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         body {
             background: #f0f2f5;
@@ -59,21 +60,21 @@
     <div class="row g-3 mb-4">
         <div class="col-md-4">
             <div class="card p-4 text-center" onclick="window.location.href='chatbot.html'">
-                <div class="card-icon">📅</div>
+                <div class="card-icon"><i class="bi bi-calendar-event" aria-hidden="true"></i></div>
                 <h6 class="fw-bold">Mis horarios</h6>
                 <p class="text-muted small">Ver clases del día</p>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card p-4 text-center" onclick="window.location.href='chatbot.html'">
-                <div class="card-icon">📝</div>
+                <div class="card-icon"><i class="bi bi-journal-text" aria-hidden="true"></i></div>
                 <h6 class="fw-bold">Mis tareas</h6>
                 <p class="text-muted small" id="resumenTareas">Ver tareas pendientes</p>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card p-4 text-center" onclick="window.location.href='chatbot.html'">
-                <div class="card-icon">⭐</div>
+                <div class="card-icon"><i class="bi bi-star-fill" aria-hidden="true"></i></div>
                 <h6 class="fw-bold">Calificaciones</h6>
                 <p class="text-muted small" id="resumenPromedio">Ver mis notas</p>
             </div>
@@ -81,7 +82,7 @@
     </div>
 
     <div class="card p-4 mb-4">
-        <h6 class="fw-bold mb-3">📌 Tareas pendientes</h6>
+        <h6 class="fw-bold mb-3"><i class="bi bi-pin-angle-fill" aria-hidden="true"></i> Tareas pendientes</h6>
         <div id="tareasPendientes">
             <p class="text-muted">Cargando tareas...</p>
         </div>
@@ -89,7 +90,7 @@
 
     <div class="card p-4 mb-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="fw-bold mb-0">🔔 Avisos recientes</h6>
+            <h6 class="fw-bold mb-0"><i class="bi bi-bell-fill" aria-hidden="true"></i> Avisos recientes</h6>
             <button class="btn btn-sm btn-outline-primary" onclick="marcarAvisosLeidos()">Marcar todos como leídos</button>
         </div>
         <div id="avisos">
@@ -98,7 +99,7 @@
     </div>
 
     <button class="btn-chatbot" onclick="window.location.href='chatbot.html'">
-        🤖 Abrir Asistente Virtual
+        <i class="bi bi-robot" aria-hidden="true"></i> Abrir Asistente Virtual
     </button>
 </div>
 
@@ -114,7 +115,8 @@
 
     const hora = new Date().getHours();
     let saludo = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches';
-    document.getElementById('saludo').textContent = `${saludo}, ${nombre}! 👋`;
+    document.getElementById('saludo').textContent = `${saludo}, ${nombre}! `;
+    document.getElementById('saludo').insertAdjacentHTML('beforeend', '<i class="bi bi-hand-thumbs-up" aria-hidden="true"></i>');
 
     async function cargarDashboard() {
         try {
@@ -146,7 +148,7 @@
 
             if (tareas.length === 0) {
                 document.getElementById('tareasPendientes').innerHTML =
-                    '<p class="text-muted">No tienes tareas pendientes. 🎉</p>';
+                    '<p class="text-muted">No tienes tareas pendientes. <i class="bi bi-check-circle-fill" aria-hidden="true"></i></p>';
             } else {
                 document.getElementById('tareasPendientes').innerHTML = tareas.map(t => `
                     <div class="aviso-item">
