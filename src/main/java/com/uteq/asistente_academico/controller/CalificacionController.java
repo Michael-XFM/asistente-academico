@@ -12,8 +12,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -34,17 +36,37 @@ public class CalificacionController {
     @Autowired
     private UsuarioService usuarioService;
 
+    /**
+     * Lista completa de calificaciones del usuario AUTENTICADO (materia +
+     * nota cada una), a diferencia de /reporte que solo da el resumen
+     * agregado (promedio, mejor/peor materia). Igual que en reporte(), el
+     * id_usuario se resuelve del JWT, nunca de un parametro del cliente.
+     *
+     * Se aplana a un DTO local {materia, nota} en vez de devolver la
+     * entidad Calificacion tal cual: la entidad trae "materia" como el
+     * objeto Materia completo (id_materia + nombre), y calificaciones.html
+     * ya espera "materia" como el nombre en texto plano.
+     */
+    @GetMapping
+    public ResponseEntity<?> listar(Authentication authentication, HttpServletRequest request) {
+        Optional<Usuario> usuarioOpt = usuarioService.buscarPorEmail(authentication.getName());
+        if (usuarioOpt.isEmpty()) {
+            return errorUsuarioNoEncontrado(request);
+        }
+
+        List<CalificacionListado> calificaciones = calificacionRepository
+                .findByUsuario_IdUsuario(usuarioOpt.get().getIdUsuario())
+                .stream()
+                .map(c -> new CalificacionListado(c.getMateria().getNombre(), c.getNota()))
+                .toList();
+        return ResponseEntity.ok(calificaciones);
+    }
+
     @GetMapping("/reporte")
     public ResponseEntity<?> reporte(Authentication authentication, HttpServletRequest request) {
         Optional<Usuario> usuarioOpt = usuarioService.buscarPorEmail(authentication.getName());
         if (usuarioOpt.isEmpty()) {
-            ProblemDetail problema = ProblemDetail.forStatusAndDetail(
-                    HttpStatus.NOT_FOUND, "El usuario del token no existe en el sistema.");
-            problema.setType(URI.create("https://asistente-academico.uteq.edu.ec/errores/usuario-no-encontrado"));
-            problema.setTitle("Usuario no encontrado");
-            problema.setInstance(URI.create(request.getRequestURI()));
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);
+            return errorUsuarioNoEncontrado(request);
         }
 
         // Con parametros OUT, Spring Data devuelve un Map<String,Object>
@@ -58,5 +80,18 @@ public class CalificacionController {
         respuesta.put("mejorMateria", resultado.get("p_mejor_materia"));
         respuesta.put("peorMateria", resultado.get("p_peor_materia"));
         return ResponseEntity.ok(respuesta);
+    }
+
+    private ResponseEntity<ProblemDetail> errorUsuarioNoEncontrado(HttpServletRequest request) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(
+                HttpStatus.NOT_FOUND, "El usuario del token no existe en el sistema.");
+        problema.setType(URI.create("https://asistente-academico.uteq.edu.ec/errores/usuario-no-encontrado"));
+        problema.setTitle("Usuario no encontrado");
+        problema.setInstance(URI.create(request.getRequestURI()));
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);
+    }
+
+    private record CalificacionListado(String materia, BigDecimal nota) {
     }
 }
