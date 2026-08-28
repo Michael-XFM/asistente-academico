@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis tareas — Asistente Virtual Académico</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --navy: #062B57;
+            --blue-academic: #1769D1;
+            --blue-active: #2F80ED;
+            --gold: #D99A2B;
+            --green: #21A675;
+            --violet: #8064D9;
+            --alert: #C24A3A;
+
+            --bg: #F6F8FC;
+            --card: #FFFFFF;
+            --soft-blue: #EEF5FF;
+            --soft-green: #EDF9F4;
+            --soft-gold: #FFF6E6;
+            --soft-violet: #F5F0FF;
+
+            --ink: #14233B;
+            --muted: #607089;
+            --faint: #8A97AA;
+            --line: #E4EAF2;
+            --shadow: 0 4px 16px rgba(20,35,59,0.08);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+        }
+
+        .layout { display: grid; grid-template-columns: 248px 1fr; min-height: 100vh; }
+
+        /* ---------- Sidebar (igual que dashboard.html) ---------- */
+        .sidebar { background: var(--navy); color: #C9D6EA; display: flex; flex-direction: column; padding: 28px 16px; }
+        .brand { display: flex; align-items: center; gap: 12px; padding: 0 6px 22px; border-bottom: 1px solid rgba(201,214,234,0.15); margin-bottom: 12px; }
+        .brand-seal { width: 46px; height: 46px; border-radius: 50%; background: #FFFFFF; border: 2px solid var(--gold); display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+        .brand-seal img { width: 100%; height: 100%; object-fit: contain; padding: 3px; }
+        .brand-text { font-family: 'Fraunces', serif; font-weight: 700; font-size: 15px; line-height: 1.2; letter-spacing: 0.02em; color: #FFFFFF; }
+        .brand-text small { display: block; font-family: 'Inter', sans-serif; font-weight: 500; font-size: 9.5px; letter-spacing: 0.06em; color: #8FA3C4; margin-top: 3px; }
+        nav.tabs { display: flex; flex-direction: column; margin-top: 4px; gap: 3px; }
+        .tab { display: flex; align-items: center; gap: 12px; padding: 13px 14px; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; color: #AEC0DC; text-decoration: none; border-radius: 10px; }
+        .tab svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .tab.active { background: var(--blue-active); color: #FFFFFF; box-shadow: 0 4px 12px rgba(47,128,237,0.35); }
+        .tab:not(.active):hover { background: rgba(201,214,234,0.08); color: #FFFFFF; }
+        .sidebar-footer { margin-top: auto; padding: 16px 14px 0; border-top: 1px solid rgba(201,214,234,0.15); }
+        .sidebar-footer button { width: 100%; display: flex; align-items: center; gap: 10px; background: none; border: none; color: #AEC0DC; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; padding: 10px 0; cursor: pointer; }
+        .sidebar-footer button:hover { color: #FFFFFF; }
+        .sidebar-footer svg { width: 16px; height: 16px; }
+
+        /* ---------- Main ---------- */
+        main { padding: 34px 44px 60px; }
+
+        header.page-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 22px;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        h1.page-title {
+            font-family: 'Fraunces', serif;
+            font-weight: 700;
+            font-size: 32px;
+            color: var(--navy);
+            margin: 0 0 6px;
+        }
+
+        .page-sub { font-size: 13.5px; color: var(--muted); }
+
+        .btn-primary {
+            background: var(--blue-active);
+            color: #FFFFFF;
+            border: none;
+            padding: 11px 20px;
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(47,128,237,0.28);
+            white-space: nowrap;
+        }
+        .btn-primary:hover { background: var(--blue-academic); }
+
+        /* ---------- Filtros ---------- */
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 22px;
+            flex-wrap: wrap;
+        }
+
+        .filter-chip {
+            background: var(--card);
+            border: 1px solid var(--line);
+            color: var(--muted);
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .filter-chip.active { background: var(--blue-active); border-color: var(--blue-active); color: #FFFFFF; }
+
+        /* ---------- Ticket cards ---------- */
+        .ticket {
+            display: grid;
+            grid-template-columns: 1.1fr 1.8fr auto auto;
+            align-items: center;
+            gap: 20px;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 18px 22px;
+            position: relative;
+            box-shadow: var(--shadow);
+            margin-bottom: 12px;
+        }
+
+        .ticket-code {
+            display: inline-block;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--gold);
+            background: var(--soft-gold);
+            padding: 3px 9px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .ticket-materia { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+        .ticket-titulo { font-size: 14.5px; font-weight: 600; margin-bottom: 4px; color: var(--ink); }
+        .ticket-desc { font-size: 12.5px; color: var(--muted); max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ticket-meta { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+        .ticket-fecha { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; color: var(--ink); }
+        .ticket-fecha.dias-poco { color: var(--alert); font-weight: 600; }
+
+        .stamp { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 11.5px; letter-spacing: 0.04em; padding: 7px 14px; border-radius: 999px; white-space: nowrap; }
+        .stamp.pendiente { color: var(--blue-academic); background: var(--soft-blue); }
+        .stamp.vencida { color: var(--alert); background: #FBEAE7; }
+
+        .ticket-actions { display: flex; gap: 6px; }
+
+        .icon-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            border: 1px solid var(--line);
+            background: var(--card);
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .icon-btn:hover { background: var(--soft-blue); color: var(--blue-academic); border-color: var(--soft-blue); }
+        .icon-btn.danger:hover { background: #FBEAE7; color: var(--alert); border-color: #FBEAE7; }
+        .icon-btn svg { width: 16px; height: 16px; }
+
+        .empty-note, .loading-note, .error-note {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 30px 22px;
+            font-size: 13.5px;
+            color: var(--muted);
+            text-align: center;
+        }
+        .error-note { color: var(--alert); }
+
+        /* ---------- Modal ---------- */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(20,35,59,0.45);
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            padding: 20px;
+        }
+        .modal-overlay.open { display: flex; }
+
+        .modal {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 28px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 12px 40px rgba(20,35,59,0.25);
+        }
+
+        .modal h3 {
+            font-family: 'Fraunces', serif;
+            font-size: 20px;
+            color: var(--navy);
+            margin: 0 0 18px;
+        }
+
+        .field { margin-bottom: 14px; }
+        .field label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.02em; }
+        .field input, .field textarea, .field select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13.5px;
+            color: var(--ink);
+            background: var(--bg);
+        }
+        .field textarea { resize: vertical; min-height: 70px; }
+        .field input:focus, .field textarea:focus, .field select:focus {
+            outline: 2px solid var(--blue-active);
+            outline-offset: 1px;
+        }
+
+        .field-error { color: var(--alert); font-size: 12px; margin-top: 4px; display: none; }
+        .field-error.show { display: block; }
+
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+        .btn-secondary {
+            background: none;
+            border: 1px solid var(--line);
+            color: var(--muted);
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-secondary:hover { background: var(--bg); }
+
+        .modal-error {
+            background: #FBEAE7;
+            color: var(--alert);
+            font-size: 12.5px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 14px;
+            display: none;
+        }
+        .modal-error.show { display: block; }
+
+        @media (max-width: 860px) {
+            .layout { grid-template-columns: 1fr; }
+            .sidebar { flex-direction: row; overflow-x: auto; padding: 12px; }
+            .brand, .sidebar-footer { display: none; }
+            nav.tabs { flex-direction: row; }
+            main { padding: 22px; }
+            .ticket { grid-template-columns: 1fr; gap: 8px; }
+            .ticket-actions { justify-content: flex-start; }
+        }
+
+        :focus-visible { outline: 2px solid var(--blue-active); outline-offset: 2px; }
+    /* ---------- Botón flotante del chatbot ---------- */
+        .chat-fab {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--blue-active), var(--navy));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(6,43,87,0.35);
+            text-decoration: none;
+            z-index: 999;
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+        .chat-fab:hover { transform: translateY(-3px) scale(1.04); box-shadow: 0 12px 28px rgba(6,43,87,0.4); }
+        .chat-fab img { width: 40px; height: 40px; object-fit: contain; border-radius: 50%; }
+        .chat-fab .chat-fab-tooltip {
+            position: absolute;
+            right: 68px;
+            background: var(--navy);
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 12.5px;
+            font-weight: 600;
+            padding: 7px 12px;
+            border-radius: 8px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(6px);
+            transition: opacity .15s ease, transform .15s ease;
+        }
+        .chat-fab:hover .chat-fab-tooltip { opacity: 1; transform: translateX(0); }
+        @media (max-width: 860px) {
+            .chat-fab { bottom: 18px; right: 18px; width: 52px; height: 52px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-seal"><img src="img/uteq-logo.png" alt="Escudo UTEQ"></div>
+            <div class="brand-text">UTEQ<small>Universidad Técnica Estatal de Quevedo</small></div>
+        </div>
+        <nav class="tabs">
+            <a class="tab" href="dashboard.html">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>
+                Inicio
+            </a>
+            <a class="tab" href="horarios.html">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="1"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+                Horarios
+            </a>
+            <a class="tab active" href="tareas.html">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="17" rx="1"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>
+                Tareas
+            </a>
+            <a class="tab" href="calificaciones.html">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h9l5 5v13H6z"/><path d="M10 12l2 2 4-4"/></svg>
+                Calificaciones
+            </a>
+            <a class="tab" href="avisos.html">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17h7M11 7a5 5 0 0 1 5 5v3l2 2H9v-2l2-2v-3a5 5 0 0 1 0-3z"/></svg>
+                Avisos
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <button onclick="cerrarSesion()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+                Cerrar sesión
+            </button>
+        </div>
+    </aside>
+
+    <main>
+        <header class="page-head">
+            <div>
+                <h1 class="page-title">Mis tareas</h1>
+                <div class="page-sub" id="pageSub">Cargando…</div>
+            </div>
+            <button class="btn-primary" onclick="abrirModal()">+ Nueva tarea</button>
+        </header>
+
+        <div class="filters">
+            <button class="filter-chip active" data-filtro="todas" onclick="cambiarFiltro('todas')">Todas</button>
+            <button class="filter-chip" data-filtro="pendientes" onclick="cambiarFiltro('pendientes')">Pendientes</button>
+            <button class="filter-chip" data-filtro="vencidas" onclick="cambiarFiltro('vencidas')">Vencidas</button>
+        </div>
+
+        <div id="listaTareas">
+            <div class="loading-note">Cargando tareas…</div>
+        </div>
+    </main>
+</div>
+
+<!-- ---------- Modal crear/editar ---------- -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <h3 id="modalTitulo">Nueva tarea</h3>
+        <div class="modal-error" id="modalError"></div>
+        <form id="formTarea" onsubmit="return guardarTarea(event)">
+            <input type="hidden" id="tareaId">
+            <div class="field">
+                <label for="fTitulo">Título</label>
+                <input type="text" id="fTitulo" maxlength="200" required>
+            </div>
+            <div class="field">
+                <label for="fMateria">Materia</label>
+                <select id="fMateria" required>
+                    <option value="">Selecciona una materia…</option>
+                </select>
+                <div class="field-error" id="errMateria">No se pudieron cargar las materias.</div>
+            </div>
+            <div class="field">
+                <label for="fDescripcion">Descripción</label>
+                <textarea id="fDescripcion" required></textarea>
+            </div>
+            <div class="field">
+                <label for="fFecha">Fecha de entrega</label>
+                <input type="date" id="fFecha" required>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="cerrarModal()">Cancelar</button>
+                <button type="submit" class="btn-primary">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = 'index.html';
+
+    let tareasCache = [];
+    let materiasCache = [];
+    let filtroActual = 'todas';
+
+    function headers() {
+        return { 'Authorization': 'Bearer ' + token };
+    }
+
+    function formatearFecha(iso) {
+        if (!iso) return '';
+        var p = iso.split('-');
+        var meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+        return p[2] + ' ' + meses[parseInt(p[1], 10) - 1] + ' ' + p[0];
+    }
+
+    function diasRestantes(iso) {
+        var hoy = new Date();
+        hoy.setHours(0,0,0,0);
+        var f = new Date(iso + 'T00:00:00');
+        return Math.round((f - hoy) / 86400000);
+    }
+
+    async function cargarMaterias() {
+        try {
+            const resp = await fetch('https://localhost:8443/api/materias', { headers: headers() });
+            if (!resp.ok) throw new Error();
+            materiasCache = await resp.json();
+            const select = document.getElementById('fMateria');
+            select.innerHTML = '<option value="">Selecciona una materia…</option>' +
+                materiasCache.map(function (m) {
+                    return '<option value="' + m.idMateria + '">' + m.nombre + '</option>';
+                }).join('');
+        } catch (e) {
+            document.getElementById('errMateria').classList.add('show');
+        }
+    }
+
+    async function cargarTareas() {
+        const cont = document.getElementById('listaTareas');
+        try {
+            const resp = await fetch('https://localhost:8443/api/tareas?page=0&size=100', { headers: headers() });
+            if (resp.status === 401 || resp.status === 403) {
+                localStorage.clear();
+                window.location.href = 'index.html';
+                return;
+            }
+            if (!resp.ok) throw new Error();
+            const datos = await resp.json();
+            tareasCache = datos.content || [];
+            document.getElementById('pageSub').textContent =
+                tareasCache.length + (tareasCache.length === 1 ? ' tarea registrada' : ' tareas registradas');
+            renderizar();
+        } catch (e) {
+            cont.innerHTML = '<div class="error-note">No se pudo cargar la lista de tareas.</div>';
+        }
+    }
+
+    function cambiarFiltro(f) {
+        filtroActual = f;
+        document.querySelectorAll('.filter-chip').forEach(function (b) {
+            b.classList.toggle('active', b.dataset.filtro === f);
+        });
+        renderizar();
+    }
+
+    function renderizar() {
+        const cont = document.getElementById('listaTareas');
+        let lista = tareasCache.slice().sort(function (a, b) {
+            return new Date(a.fechaEntrega) - new Date(b.fechaEntrega);
+        });
+
+        lista = lista.filter(function (t) {
+            const dr = diasRestantes(t.fechaEntrega);
+            if (filtroActual === 'pendientes') return dr >= 0;
+            if (filtroActual === 'vencidas') return dr < 0;
+            return true;
+        });
+
+        if (lista.length === 0) {
+            cont.innerHTML = '<div class="empty-note">No hay tareas en este filtro.</div>';
+            return;
+        }
+
+        cont.innerHTML = lista.map(function (t) {
+            const dr = diasRestantes(t.fechaEntrega);
+            const vencida = dr < 0;
+            const pocoTiempo = !vencida && dr <= 2;
+            const materiaNombre = t.materia ? t.materia.nombre : '—';
+            const fechaTexto = vencida
+                ? 'venció hace ' + Math.abs(dr) + ' día(s)'
+                : dr + ' día(s) restante(s)';
+            return '' +
+            '<div class="ticket">' +
+                '<div>' +
+                    '<div class="ticket-code">' + (t.codigo || ('TAR-' + t.idTarea)) + '</div>' +
+                    '<div class="ticket-materia">' + materiaNombre + '</div>' +
+                '</div>' +
+                '<div>' +
+                    '<div class="ticket-titulo">' + t.titulo + '</div>' +
+                    '<div class="ticket-desc" title="' + (t.descripcion || '').replace(/"/g, '&quot;') + '">' + (t.descripcion || '') + '</div>' +
+                    '<div class="ticket-meta" style="margin-top:6px;">Entrega</div>' +
+                    '<div class="ticket-fecha ' + (pocoTiempo ? 'dias-poco' : '') + '">' +
+                        formatearFecha(t.fechaEntrega) + ' · ' + fechaTexto +
+                    '</div>' +
+                '</div>' +
+                '<div class="stamp ' + (vencida ? 'vencida' : 'pendiente') + '">' +
+                    (vencida ? 'VENCIDA' : 'PENDIENTE') +
+                '</div>' +
+                '<div class="ticket-actions">' +
+                    '<button class="icon-btn" title="Editar" onclick="abrirModal(' + t.idTarea + ')">' +
+                        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' +
+                    '</button>' +
+                    '<button class="icon-btn danger" title="Eliminar" onclick="eliminarTarea(' + t.idTarea + ')">' +
+                        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>' +
+                    '</button>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+    }
+
+    function abrirModal(idTarea) {
+        document.getElementById('modalError').classList.remove('show');
+        document.getElementById('formTarea').reset();
+        document.getElementById('tareaId').value = '';
+
+        if (idTarea) {
+            const t = tareasCache.find(function (x) { return x.idTarea === idTarea; });
+            if (!t) return;
+            document.getElementById('modalTitulo').textContent = 'Editar tarea';
+            document.getElementById('tareaId').value = t.idTarea;
+            document.getElementById('fTitulo').value = t.titulo;
+            document.getElementById('fMateria').value = t.materia ? t.materia.idMateria : '';
+            document.getElementById('fDescripcion').value = t.descripcion || '';
+            document.getElementById('fFecha').value = t.fechaEntrega;
+        } else {
+            document.getElementById('modalTitulo').textContent = 'Nueva tarea';
+        }
+        document.getElementById('modalOverlay').classList.add('open');
+    }
+
+    function cerrarModal() {
+        document.getElementById('modalOverlay').classList.remove('open');
+    }
+
+    async function guardarTarea(evento) {
+        evento.preventDefault();
+        const idTarea = document.getElementById('tareaId').value;
+        const idMateria = document.getElementById('fMateria').value;
+        const errorBox = document.getElementById('modalError');
+        errorBox.classList.remove('show');
+
+        const body = {
+            titulo: document.getElementById('fTitulo').value.trim(),
+            descripcion: document.getElementById('fDescripcion').value.trim(),
+            fechaEntrega: document.getElementById('fFecha').value,
+            materia: { idMateria: parseInt(idMateria, 10) }
+        };
+
+        try {
+            const url = idTarea
+                ? 'https://localhost:8443/api/tareas/' + idTarea
+                : 'https://localhost:8443/api/tareas';
+            const resp = await fetch(url, {
+                method: idTarea ? 'PUT' : 'POST',
+                headers: Object.assign({ 'Content-Type': 'application/json' }, headers()),
+                body: JSON.stringify(body)
+            });
+            if (!resp.ok) {
+                const problema = await resp.json().catch(function () { return null; });
+                throw new Error(problema && problema.detail ? problema.detail : 'No se pudo guardar la tarea.');
+            }
+            cerrarModal();
+            await cargarTareas();
+        } catch (e) {
+            errorBox.textContent = e.message;
+            errorBox.classList.add('show');
+        }
+        return false;
+    }
+
+    async function eliminarTarea(idTarea) {
+        if (!confirm('¿Eliminar esta tarea? Esta acción no se puede deshacer.')) return;
+        try {
+            const resp = await fetch('https://localhost:8443/api/tareas/' + idTarea, {
+                method: 'DELETE',
+                headers: headers()
+            });
+            if (!resp.ok) throw new Error();
+            await cargarTareas();
+        } catch (e) {
+            alert('No se pudo eliminar la tarea.');
+        }
+    }
+
+    function cerrarSesion() {
+        localStorage.clear();
+        window.location.href = 'index.html';
+    }
+
+    cargarMaterias();
+    cargarTareas();
+</script>
+<a class="chat-fab" href="chatbot.html" aria-label="Abrir asistente virtual">
+    <span class="chat-fab-tooltip">Preguntar al asistente</span>
+    <img src="img/bot-avatar.png" alt="Asistente virtual">
+</a>
+</body>
+
+</html>
