@@ -111,6 +111,19 @@
 
     document.getElementById('nombreUsuario').textContent = nombre;
 
+    // Escapa texto que viene del usuario (input del chat) o de
+    // localStorage antes de interpolarlo en un template string que va a
+    // innerHTML — si no, HTML/JS dentro de ese texto se ejecuta tal cual
+    // (self-XSS).
+    function escapeHtml(texto) {
+        return String(texto)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     function agregarMensaje(contenido, esBot) {
         const chat = document.getElementById('chat');
         const div = document.createElement('div');
@@ -126,14 +139,14 @@
         chat.scrollTop = chat.scrollHeight;
     }
 
-    agregarMensaje(`¡Hola ${nombre}! <i class="bi bi-hand-thumbs-up" aria-hidden="true"></i> Soy tu asistente virtual académico. Puedes preguntarme sobre tus horarios, tareas pendientes, calificaciones o cualquier consulta académica.`, true);
+    agregarMensaje(`¡Hola ${escapeHtml(nombre)}! <i class="bi bi-hand-thumbs-up" aria-hidden="true"></i> Soy tu asistente virtual académico. Puedes preguntarme sobre tus horarios, tareas pendientes, calificaciones o cualquier consulta académica.`, true);
 
     async function enviarMensaje() {
         const input = document.getElementById('inputMensaje');
         const mensaje = input.value.trim();
         if (!mensaje) return;
 
-        agregarMensaje(mensaje, false);
+        agregarMensaje(escapeHtml(mensaje), false);
         input.value = '';
 
         agregarMensaje('Procesando tu consulta... <i class="bi bi-hourglass-split" aria-hidden="true"></i>', true);
@@ -154,9 +167,9 @@
             } else if (mensajeLower.includes('aviso')) {
                 respuesta = '<i class="bi bi-bell-fill" aria-hidden="true"></i> No tienes avisos pendientes.';
             } else if (mensajeLower.includes('hola') || mensajeLower.includes('buenos')) {
-                respuesta = `¡Hola ${nombre}! ¿En qué puedo ayudarte hoy? <i class="bi bi-emoji-smile" aria-hidden="true"></i>`;
+                respuesta = `¡Hola ${escapeHtml(nombre)}! ¿En qué puedo ayudarte hoy? <i class="bi bi-emoji-smile" aria-hidden="true"></i>`;
             } else {
-                respuesta = `Entiendo tu consulta sobre: "${mensaje}". Por el momento estoy en desarrollo y puedo responder preguntas sobre horarios, tareas, calificaciones y avisos.`;
+                respuesta = `Entiendo tu consulta sobre: "${escapeHtml(mensaje)}". Por el momento estoy en desarrollo y puedo responder preguntas sobre horarios, tareas, calificaciones y avisos.`;
             }
 
             agregarMensaje(respuesta, true);
