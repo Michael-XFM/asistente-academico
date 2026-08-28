@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avisos — Asistente Virtual Académico</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --navy: #062B57; --blue-academic: #1769D1; --blue-active: #2F80ED;
+            --gold: #D99A2B; --green: #21A675; --violet: #8064D9; --alert: #C24A3A;
+            --bg: #F6F8FC; --card: #FFFFFF;
+            --soft-blue: #EEF5FF; --soft-green: #EDF9F4; --soft-gold: #FFF6E6; --soft-violet: #F5F0FF;
+            --ink: #14233B; --muted: #607089; --faint: #8A97AA; --line: #E4EAF2;
+            --shadow: 0 4px 16px rgba(20,35,59,0.08);
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--ink); }
+        .layout { display: grid; grid-template-columns: 248px 1fr; min-height: 100vh; }
+
+        .sidebar { background: var(--navy); color: #C9D6EA; display: flex; flex-direction: column; padding: 28px 16px; }
+        .brand { display: flex; align-items: center; gap: 12px; padding: 0 6px 22px; border-bottom: 1px solid rgba(201,214,234,0.15); margin-bottom: 12px; }
+        .brand-seal { width: 46px; height: 46px; border-radius: 50%; background: #FFFFFF; border: 2px solid var(--gold); display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+        .brand-seal img { width: 100%; height: 100%; object-fit: contain; padding: 3px; }
+        .brand-text { font-family: 'Fraunces', serif; font-weight: 700; font-size: 15px; line-height: 1.2; letter-spacing: 0.02em; color: #FFFFFF; }
+        .brand-text small { display: block; font-family: 'Inter', sans-serif; font-weight: 500; font-size: 9.5px; letter-spacing: 0.06em; color: #8FA3C4; margin-top: 3px; }
+        nav.tabs { display: flex; flex-direction: column; margin-top: 4px; gap: 3px; }
+        .tab { display: flex; align-items: center; gap: 12px; padding: 13px 14px; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; color: #AEC0DC; text-decoration: none; border-radius: 10px; }
+        .tab svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .tab.active { background: var(--blue-active); color: #FFFFFF; box-shadow: 0 4px 12px rgba(47,128,237,0.35); }
+        .tab:not(.active):hover { background: rgba(201,214,234,0.08); color: #FFFFFF; }
+        .sidebar-footer { margin-top: auto; padding: 16px 14px 0; border-top: 1px solid rgba(201,214,234,0.15); }
+        .sidebar-footer button { width: 100%; display: flex; align-items: center; gap: 10px; background: none; border: none; color: #AEC0DC; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; padding: 10px 0; cursor: pointer; }
+        .sidebar-footer button:hover { color: #FFFFFF; }
+        .sidebar-footer svg { width: 16px; height: 16px; }
+
+        main { padding: 34px 44px 60px; }
+
+        header.page-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 22px; gap: 20px; flex-wrap: wrap; }
+        h1.page-title { font-family: 'Fraunces', serif; font-weight: 700; font-size: 32px; color: var(--navy); margin: 0 0 6px; }
+        .page-sub { font-size: 13.5px; color: var(--muted); }
+
+        .btn-outline {
+            background: var(--soft-violet); border: none; color: var(--violet);
+            padding: 10px 18px; border-radius: 10px; font-family: 'Inter', sans-serif;
+            font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap;
+        }
+        .btn-outline:hover { background: var(--violet); color: #fff; }
+        .btn-outline:disabled { opacity: 0.5; cursor: default; }
+
+        .aviso-item {
+            display: flex;
+            gap: 16px;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 18px 20px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        .aviso-item.no-leido { border-left: 3px solid var(--violet); }
+
+        .aviso-icon {
+            width: 38px; height: 38px; border-radius: 10px;
+            background: var(--soft-violet); color: var(--violet);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .aviso-icon svg { width: 19px; height: 19px; }
+
+        .aviso-body { flex: 1; min-width: 0; }
+        .aviso-mensaje { font-size: 13.5px; color: var(--ink); line-height: 1.5; margin-bottom: 8px; }
+        .aviso-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 11.5px; color: var(--muted); }
+        .aviso-tarea {
+            font-family: 'IBM Plex Mono', monospace;
+            color: var(--gold); background: var(--soft-gold);
+            padding: 2px 8px; border-radius: 6px; font-size: 11px;
+        }
+
+        .aviso-badge {
+            font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+            color: var(--violet); background: var(--soft-violet);
+            padding: 3px 9px; border-radius: 999px; flex-shrink: 0; height: fit-content;
+        }
+
+        .empty-note, .loading-note, .error-note { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 30px 22px; font-size: 13.5px; color: var(--muted); text-align: center; }
+        .error-note { color: var(--alert); }
+
+        @media (max-width: 860px) {
+            .layout { grid-template-columns: 1fr; }
+            .sidebar { flex-direction: row; overflow-x: auto; padding: 12px; }
+            .brand, .sidebar-footer { display: none; }
+            nav.tabs { flex-direction: row; }
+            main { padding: 22px; }
+        }
+        :focus-visible { outline: 2px solid var(--blue-active); outline-offset: 2px; }
+    /* ---------- Botón flotante del chatbot ---------- */
+        .chat-fab {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--blue-active), var(--navy));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(6,43,87,0.35);
+            text-decoration: none;
+            z-index: 999;
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+        .chat-fab:hover { transform: translateY(-3px) scale(1.04); box-shadow: 0 12px 28px rgba(6,43,87,0.4); }
+        .chat-fab img { width: 40px; height: 40px; object-fit: contain; border-radius: 50%; }
+        .chat-fab .chat-fab-tooltip {
+            position: absolute;
+            right: 68px;
+            background: var(--navy);
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 12.5px;
+            font-weight: 600;
+            padding: 7px 12px;
+            border-radius: 8px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(6px);
+            transition: opacity .15s ease, transform .15s ease;
+        }
+        .chat-fab:hover .chat-fab-tooltip { opacity: 1; transform: translateX(0); }
+        @media (max-width: 860px) {
+            .chat-fab { bottom: 18px; right: 18px; width: 52px; height: 52px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-seal"><img src="img/uteq-logo.png" alt="Escudo UTEQ"></div>
+            <div class="brand-text">UTEQ<small>Universidad Técnica Estatal de Quevedo</small></div>
+        </div>
+        <nav class="tabs">
+            <a class="tab" href="dashboard.html">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>
+                Inicio
+            </a>
+            <a class="tab" href="horarios.html">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="1"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+                Horarios
+            </a>
+            <a class="tab" href="tareas.html">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="17" rx="1"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>
+                Tareas
+            </a>
+            <a class="tab" href="calificaciones.html">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h9l5 5v13H6z"/><path d="M10 12l2 2 4-4"/></svg>
+                Calificaciones
+            </a>
+            <a class="tab active" href="avisos.html">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17h7M11 7a5 5 0 0 1 5 5v3l2 2H9v-2l2-2v-3a5 5 0 0 1 0-3z"/></svg>
+                Avisos
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <button onclick="cerrarSesion()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+                Cerrar sesión
+            </button>
+        </div>
+    </aside>
+
+    <main>
+        <header class="page-head">
+            <div>
+                <h1 class="page-title">Avisos</h1>
+                <div class="page-sub" id="pageSub">Cargando…</div>
+            </div>
+            <button class="btn-outline" id="btnMarcarTodos" onclick="marcarTodosLeidos()">Marcar todos como leídos</button>
+        </header>
+
+        <div id="listaAvisos">
+            <div class="loading-note">Cargando avisos…</div>
+        </div>
+    </main>
+</div>
+
+<script>
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = 'index.html';
+
+    function headers() { return { 'Authorization': 'Bearer ' + token }; }
+
+    function formatearFechaHora(iso) {
+        if (!iso) return '';
+        const f = new Date(iso);
+        const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+        const hh = String(f.getHours()).padStart(2, '0');
+        const mm = String(f.getMinutes()).padStart(2, '0');
+        return f.getDate() + ' ' + meses[f.getMonth()] + ' · ' + hh + ':' + mm;
+    }
+
+    async function cargar() {
+        try {
+            const resp = await fetch('https://localhost:8443/api/avisos', { headers: headers() });
+            if (resp.status === 401 || resp.status === 403) {
+                localStorage.clear();
+                window.location.href = 'index.html';
+                return;
+            }
+            if (!resp.ok) throw new Error();
+            const avisos = await resp.json();
+
+            const noLeidos = avisos.filter(function (a) { return !a.leido; }).length;
+            document.getElementById('pageSub').textContent =
+                avisos.length === 0
+                    ? 'No tienes avisos'
+                    : noLeidos + ' sin leer de ' + avisos.length + ' en total';
+            document.getElementById('btnMarcarTodos').disabled = noLeidos === 0;
+
+            const cont = document.getElementById('listaAvisos');
+            if (avisos.length === 0) {
+                cont.innerHTML = '<div class="empty-note">No tienes avisos registrados.</div>';
+                return;
+            }
+
+            cont.innerHTML = avisos.map(function (a) {
+                return '' +
+                '<div class="aviso-item ' + (a.leido ? '' : 'no-leido') + '">' +
+                    '<div class="aviso-icon">' +
+                        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17h7M11 7a5 5 0 0 1 5 5v3l2 2H9v-2l2-2v-3a5 5 0 0 1 0-3z"/></svg>' +
+                    '</div>' +
+                    '<div class="aviso-body">' +
+                        '<div class="aviso-mensaje">' + (a.mensaje || '') + '</div>' +
+                        '<div class="aviso-meta">' +
+                            (a.tareaCodigo ? '<span class="aviso-tarea">' + a.tareaCodigo + '</span>' : '') +
+                            '<span>' + formatearFechaHora(a.fechaGeneracion) + '</span>' +
+                        '</div>' +
+                    '</div>' +
+                    (a.leido ? '' : '<span class="aviso-badge">Nuevo</span>') +
+                '</div>';
+            }).join('');
+
+        } catch (e) {
+            document.getElementById('listaAvisos').innerHTML =
+                '<div class="error-note">No se pudo cargar la lista de avisos.</div>';
+            document.getElementById('pageSub').textContent = '';
+        }
+    }
+
+    async function marcarTodosLeidos() {
+        try {
+            const resp = await fetch('https://localhost:8443/api/dashboard/avisos/marcar-leidos', {
+                method: 'PUT',
+                headers: headers()
+            });
+            if (!resp.ok) throw new Error();
+            await cargar();
+        } catch (e) {
+            alert('No se pudieron marcar los avisos como leídos.');
+        }
+    }
+
+    function cerrarSesion() {
+        localStorage.clear();
+        window.location.href = 'index.html';
+    }
+
+    cargar();
+</script>
+<a class="chat-fab" href="chatbot.html" aria-label="Abrir asistente virtual">
+    <span class="chat-fab-tooltip">Preguntar al asistente</span>
+    <img src="img/bot-avatar.png" alt="Asistente virtual">
+</a>
+</body>
+
+</html>

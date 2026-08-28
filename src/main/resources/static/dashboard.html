@@ -3,104 +3,616 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Asistente Virtual Académico</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <title>Dashboard — Asistente Virtual Académico</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --navy: #062B57;
+            --blue-academic: #1769D1;
+            --blue-active: #2F80ED;
+            --gold: #D99A2B;
+            --green: #21A675;
+            --violet: #8064D9;
+            --alert: #C24A3A;
+
+            --bg: #F6F8FC;
+            --card: #FFFFFF;
+            --soft-blue: #EEF5FF;
+            --soft-green: #EDF9F4;
+            --soft-gold: #FFF6E6;
+            --soft-violet: #F5F0FF;
+
+            --ink: #14233B;
+            --muted: #607089;
+            --faint: #8A97AA;
+            --line: #E4EAF2;
+            --divider: #EDF0F5;
+            --shadow: 0 4px 16px rgba(20,35,59,0.08);
+        }
+
+        * { box-sizing: border-box; }
+
         body {
-            background: #f0f2f5;
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--ink);
         }
-        .navbar {
-            background: linear-gradient(135deg, #1a3a6b, #2196F3);
+
+        .layout {
+            display: grid;
+            grid-template-columns: 248px 1fr;
+            min-height: 100vh;
         }
-        .card {
-            border-radius: 15px;
+
+        /* ---------- Sidebar ---------- */
+        .sidebar {
+            background: var(--navy);
+            color: #C9D6EA;
+            display: flex;
+            flex-direction: column;
+            padding: 28px 16px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 6px 22px;
+            border-bottom: 1px solid rgba(201,214,234,0.15);
+            margin-bottom: 12px;
+        }
+
+        .brand-seal {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            background: #FFFFFF;
+            border: 2px solid var(--gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .brand-seal img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 3px;
+        }
+
+        .brand-text {
+            font-family: 'Fraunces', serif;
+            font-weight: 700;
+            font-size: 15px;
+            line-height: 1.2;
+            letter-spacing: 0.02em;
+            color: #FFFFFF;
+        }
+
+        .brand-text small {
+            display: block;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            font-size: 9.5px;
+            letter-spacing: 0.06em;
+            color: #8FA3C4;
+            margin-top: 3px;
+        }
+
+        nav.tabs { display: flex; flex-direction: column; margin-top: 4px; gap: 3px; }
+
+        .tab {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 13px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            color: #AEC0DC;
+            text-decoration: none;
+            border-radius: 10px;
+        }
+
+        .tab svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+        .tab.active {
+            background: var(--blue-active);
+            color: #FFFFFF;
+            box-shadow: 0 4px 12px rgba(47,128,237,0.35);
+        }
+
+        .tab:not(.active):hover {
+            background: rgba(201,214,234,0.08);
+            color: #FFFFFF;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 16px 14px 0;
+            border-top: 1px solid rgba(201,214,234,0.15);
+        }
+
+        .sidebar-footer button {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: none;
             border: none;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
+            color: #AEC0DC;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 10px 0;
             cursor: pointer;
         }
-        .card:hover {
-            transform: translateY(-5px);
+
+        .sidebar-footer button:hover { color: #FFFFFF; }
+        .sidebar-footer svg { width: 16px; height: 16px; }
+
+        /* ---------- Main sheet ---------- */
+        main {
+            padding: 34px 44px 60px;
         }
-        .card-icon {
-            font-size: 40px;
-            margin-bottom: 10px;
+
+        header.sheet-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding-bottom: 18px;
+            margin-bottom: 22px;
         }
-        .btn-chatbot {
-            background: linear-gradient(135deg, #1a3a6b, #2196F3);
-            color: white;
+
+        .eyebrow {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .folio-box {
+            text-align: right;
+            font-family: 'IBM Plex Mono', monospace;
+            background: var(--soft-gold);
+            border-radius: 12px;
+            padding: 10px 16px;
+        }
+
+        .folio-box .label {
+            font-size: 10.5px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            color: var(--gold);
+        }
+
+        .folio-box .num {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--ink);
+            line-height: 1.1;
+        }
+
+        .folio-box .reg {
+            font-size: 10px;
+            color: var(--muted);
+        }
+
+        h1.greeting {
+            font-family: 'Fraunces', serif;
+            font-weight: 700;
+            font-size: 38px;
+            margin: 4px 0 10px;
+            position: relative;
+            display: inline-block;
+            color: var(--navy);
+        }
+
+        .greeting-underline {
+            width: 130px;
+            height: 4px;
+            background: var(--gold);
+            border-radius: 4px;
+            margin-bottom: 28px;
+        }
+
+        /* ---------- Stat cards ---------- */
+        .stat-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 34px;
+        }
+
+        .stat {
+            padding: 20px 22px;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .stat.alert { background: var(--soft-violet); border-color: transparent; }
+
+        .stat-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 12px;
+        }
+
+        .stat-label svg {
+            width: 26px;
+            height: 26px;
+            padding: 5px;
+            border-radius: 8px;
+            background: var(--soft-blue);
+            color: var(--blue-academic);
+            box-sizing: content-box;
+        }
+
+        .stat.alert .stat-label { color: var(--violet); }
+        .stat.alert .stat-label svg { background: var(--soft-violet); color: var(--violet); }
+
+        .stat-value {
+            font-family: 'Fraunces', serif;
+            font-weight: 700;
+            font-size: 26px;
+            margin-bottom: 4px;
+            color: var(--navy);
+        }
+
+        .stat.alert .stat-value { color: var(--violet); }
+
+        .stat-sub {
+            font-size: 12.5px;
+            color: var(--muted);
+            min-height: 32px;
+        }
+
+        .stat-link {
+            display: inline-block;
+            margin-top: 10px;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--blue-academic);
+            text-decoration: none;
+        }
+
+        .stat.alert .stat-link { color: var(--violet); }
+        .stat-link:hover { text-decoration: underline; }
+
+        /* ---------- Section ---------- */
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .section-head h2 {
+            font-family: 'Fraunces', serif;
+            font-size: 19px;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            margin: 0;
+            color: var(--navy);
+        }
+
+        .btn-primary {
+            background: var(--blue-active);
+            color: #FFFFFF;
             border: none;
-            padding: 15px;
-            font-size: 18px;
+            padding: 10px 18px;
             border-radius: 10px;
-            width: 100%;
+            font-family: 'Inter', sans-serif;
+            font-size: 12.5px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(47,128,237,0.28);
         }
-        .aviso-item {
-            border-left: 4px solid #2196F3;
-            padding: 10px 15px;
-            margin-bottom: 10px;
-            background: white;
-            border-radius: 5px;
+
+        .btn-primary:hover { background: var(--blue-academic); }
+
+        /* ---------- Ticket cards ---------- */
+        .ticket {
+            display: grid;
+            grid-template-columns: 1.1fr 1.6fr auto;
+            align-items: center;
+            gap: 20px;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 18px 22px;
+            position: relative;
+            box-shadow: var(--shadow);
+            margin-bottom: 12px;
+        }
+
+        .ticket::after {
+            content: "";
+            position: absolute;
+            right: 168px;
+            top: 10px;
+            bottom: 10px;
+            border-left: 1px dashed var(--line);
+        }
+
+        .ticket-code {
+            display: inline-block;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--gold);
+            background: var(--soft-gold);
+            padding: 3px 9px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .ticket-materia {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .ticket-titulo {
+            font-size: 14.5px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--ink);
+        }
+
+        .ticket-meta {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 3px;
+        }
+
+        .ticket-fecha {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12.5px;
+            color: var(--ink);
+        }
+
+        .ticket-fecha.dias-poco { color: var(--alert); font-weight: 600; }
+
+        .stamp {
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            font-size: 11.5px;
+            letter-spacing: 0.04em;
+            padding: 7px 14px;
+            border-radius: 999px;
+            white-space: nowrap;
+            justify-self: end;
+        }
+
+        .stamp.pendiente { color: var(--blue-academic); background: var(--soft-blue); }
+        .stamp.vencida { color: var(--alert); background: #FBEAE7; }
+
+        .empty-note {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 24px 22px;
+            font-size: 13.5px;
+            color: var(--muted);
+        }
+
+        /* ---------- Avisos ---------- */
+        .avisos-box {
+            margin-top: 34px;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 20px 22px;
+            box-shadow: var(--shadow);
+        }
+
+        .avisos-box .section-head { margin-bottom: 12px; }
+        .avisos-box .section-head h2 { font-size: 16px; }
+
+        .btn-outline {
+            background: var(--soft-violet);
+            border: none;
+            color: var(--violet);
+            padding: 8px 15px;
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            font-size: 11.5px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-outline:hover { background: var(--violet); color: #fff; }
+
+        .avisos-content { font-size: 13.5px; color: var(--muted); }
+        .avisos-content strong { color: var(--violet); }
+
+        /* ---------- Loading / error ---------- */
+        .loading-note { font-size: 13px; color: var(--muted); padding: 22px; }
+        .error-note { font-size: 13px; color: var(--alert); padding: 22px; }
+
+        @media (max-width: 860px) {
+            .layout { grid-template-columns: 1fr; }
+            .sidebar { flex-direction: row; overflow-x: auto; padding: 12px; }
+            .brand, .sidebar-footer { display: none; }
+            nav.tabs { flex-direction: row; }
+            .stat-row { grid-template-columns: 1fr 1fr; }
+            main { padding: 22px; }
+            .ticket { grid-template-columns: 1fr; gap: 8px; }
+            .ticket::after { display: none; }
+            .stamp { justify-self: start; }
+        }
+
+        :focus-visible { outline: 2px solid var(--blue-active); outline-offset: 2px; }
+    /* ---------- Botón flotante del chatbot ---------- */
+        .chat-fab {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--blue-active), var(--navy));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(6,43,87,0.35);
+            text-decoration: none;
+            z-index: 999;
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+        .chat-fab:hover { transform: translateY(-3px) scale(1.04); box-shadow: 0 12px 28px rgba(6,43,87,0.4); }
+        .chat-fab img { width: 40px; height: 40px; object-fit: contain; border-radius: 50%; }
+        .chat-fab .chat-fab-tooltip {
+            position: absolute;
+            right: 68px;
+            background: var(--navy);
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 12.5px;
+            font-weight: 600;
+            padding: 7px 12px;
+            border-radius: 8px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(6px);
+            transition: opacity .15s ease, transform .15s ease;
+        }
+        .chat-fab:hover .chat-fab-tooltip { opacity: 1; transform: translateX(0); }
+        @media (max-width: 860px) {
+            .chat-fab { bottom: 18px; right: 18px; width: 52px; height: 52px; }
         }
     </style>
 </head>
 <body>
-<nav class="navbar navbar-dark px-4 py-3">
-    <span class="navbar-brand fw-bold">Asistente Virtual Académico</span>
-    <div class="d-flex align-items-center gap-3">
-        <span class="text-white" id="nombreUsuario"></span>
-        <button class="btn btn-outline-light btn-sm" onclick="cerrarSesion()">Cerrar sesión</button>
-    </div>
-</nav>
 
-<div class="container mt-4">
-    <h5 class="mb-4" id="saludo"></h5>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-seal"><img src="img/uteq-logo.png" alt="Escudo UTEQ"></div>
+            <div class="brand-text">UTEQ<small>Universidad Técnica Estatal de Quevedo</small></div>
+        </div>
+        <nav class="tabs">
+            <a class="tab active" href="dashboard.html">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>
+                Inicio
+            </a>
+            <a class="tab" href="horarios.html">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="1"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+                Horarios
+            </a>
+            <a class="tab" href="tareas.html">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="17" rx="1"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>
+                Tareas
+            </a>
+            <a class="tab" href="calificaciones.html">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h9l5 5v13H6z"/><path d="M10 12l2 2 4-4"/></svg>
+                Calificaciones
+            </a>
+            <a class="tab" href="avisos.html">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17h7M11 7a5 5 0 0 1 5 5v3l2 2H9v-2l2-2v-3a5 5 0 0 1 0-3z"/></svg>
+                Avisos
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <button onclick="cerrarSesion()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+                Cerrar sesión
+            </button>
+        </div>
+    </aside>
 
-    <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="card p-4 text-center" onclick="window.location.href='chatbot.html'">
-                <div class="card-icon"><i class="bi bi-calendar-event" aria-hidden="true"></i></div>
-                <h6 class="fw-bold">Mis horarios</h6>
-                <p class="text-muted small">Ver clases del día</p>
+    <main>
+        <header class="sheet-head">
+            <div>
+                <div class="eyebrow">Asistente Virtual Académico</div>
+            </div>
+            <div class="folio-box">
+                <div class="label">Sesión</div>
+                <div class="num" id="folioSesion">—</div>
+                <div class="reg" id="regFecha"></div>
+            </div>
+        </header>
+
+        <h1 class="greeting" id="saludo">Cargando…</h1>
+        <div class="greeting-underline"></div>
+
+        <div class="stat-row" id="statRow">
+            <div class="stat">
+                <div class="stat-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="1"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+                    Próxima entrega
+                </div>
+                <div class="stat-value" id="statProximaEntrega">—</div>
+                <div class="stat-sub" id="statProximaEntregaSub"></div>
+                <a class="stat-link" href="chatbot.html">Ver horario completo →</a>
+            </div>
+            <div class="stat">
+                <div class="stat-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="17" rx="1"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>
+                    Tareas
+                </div>
+                <div class="stat-value" id="statTareas">—</div>
+                <div class="stat-sub" id="statTareasSub"></div>
+                <a class="stat-link" href="tareas.html">Ver todas mis tareas →</a>
+            </div>
+            <div class="stat">
+                <div class="stat-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h9l5 5v13H6z"/><path d="M10 12l2 2 4-4"/></svg>
+                    Calificaciones
+                </div>
+                <div class="stat-value" id="statPromedio">—</div>
+                <div class="stat-sub" id="statPromedioSub"></div>
+                <a class="stat-link" href="calificaciones.html">Ver mis notas →</a>
+            </div>
+            <div class="stat alert" id="statAvisosBox">
+                <div class="stat-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17h7M11 7a5 5 0 0 1 5 5v3l2 2H9v-2l2-2v-3a5 5 0 0 1 0-3z"/></svg>
+                    Avisos importantes
+                </div>
+                <div class="stat-value" id="statAvisos">—</div>
+                <div class="stat-sub">Revisa los avisos de tu carrera y docentes</div>
+                <a class="stat-link" href="avisos.html">Ir a avisos →</a>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card p-4 text-center" onclick="window.location.href='chatbot.html'">
-                <div class="card-icon"><i class="bi bi-journal-text" aria-hidden="true"></i></div>
-                <h6 class="fw-bold">Mis tareas</h6>
-                <p class="text-muted small" id="resumenTareas">Ver tareas pendientes</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card p-4 text-center" onclick="window.location.href='chatbot.html'">
-                <div class="card-icon"><i class="bi bi-star-fill" aria-hidden="true"></i></div>
-                <h6 class="fw-bold">Calificaciones</h6>
-                <p class="text-muted small" id="resumenPromedio">Ver mis notas</p>
-            </div>
-        </div>
-    </div>
 
-    <div class="card p-4 mb-4">
-        <h6 class="fw-bold mb-3"><i class="bi bi-pin-angle-fill" aria-hidden="true"></i> Tareas pendientes</h6>
+        <div class="section-head">
+            <h2>Tareas pendientes</h2>
+            <button class="btn-primary" onclick="window.location.href='tareas.html'">+ Nueva tarea</button>
+        </div>
         <div id="tareasPendientes">
-            <p class="text-muted">Cargando tareas...</p>
+            <div class="loading-note">Cargando tareas…</div>
         </div>
-    </div>
 
-    <div class="card p-4 mb-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="fw-bold mb-0"><i class="bi bi-bell-fill" aria-hidden="true"></i> Avisos recientes</h6>
-            <button class="btn btn-sm btn-outline-primary" onclick="marcarAvisosLeidos()">Marcar todos como leídos</button>
+        <div class="avisos-box">
+            <div class="section-head">
+                <h2>Avisos recientes</h2>
+                <button class="btn-outline" onclick="marcarAvisosLeidos()">Marcar todos como leídos</button>
+            </div>
+            <div class="avisos-content" id="avisos">Cargando avisos…</div>
         </div>
-        <div id="avisos">
-            <p class="text-muted">Cargando avisos...</p>
-        </div>
-    </div>
-
-    <button class="btn-chatbot" onclick="window.location.href='chatbot.html'">
-        <i class="bi bi-robot" aria-hidden="true"></i> Abrir Asistente Virtual
-    </button>
+    </main>
 </div>
 
 <script>
@@ -111,62 +623,127 @@
         window.location.href = 'index.html';
     }
 
-    document.getElementById('nombreUsuario').textContent = nombre;
-
     const hora = new Date().getHours();
-    let saludo = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches';
-    document.getElementById('saludo').textContent = `${saludo}, ${nombre}! `;
-    document.getElementById('saludo').insertAdjacentHTML('beforeend', '<i class="bi bi-hand-thumbs-up" aria-hidden="true"></i>');
+    const saludoBase = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches';
+    document.getElementById('saludo').textContent = saludoBase + ', ' + (nombre || '') + '.';
+
+    const hoy = new Date();
+    document.getElementById('regFecha').textContent =
+        'REG. ' + String(hoy.getMonth() + 1).padStart(2, '0') + '/' + String(hoy.getFullYear()).slice(2);
+    // "Folio de sesión" es solo un identificador visual de la sesión actual
+    // en el navegador, no un dato que devuelva el backend.
+    document.getElementById('folioSesion').textContent =
+        String(Math.floor(Math.random() * 900) + 100).padStart(3, '0');
+
+    function formatearFecha(iso) {
+        if (!iso) return null;
+        var partes = iso.split('-');
+        var y = partes[0], m = partes[1], d = partes[2];
+        var meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+        return d + ' ' + meses[parseInt(m, 10) - 1] + ' ' + y;
+    }
 
     async function cargarDashboard() {
         try {
-            const respuesta = await fetch('https://localhost:8443/api/dashboard', {
-                headers: { 'Authorization': `Bearer ${token}` }
+            // Resumen académico + tareas pendientes (fn_obtener_resumen_academico
+            // y fn_listar_tareas_pendientes vía /api/dashboard).
+            const respDash = await fetch('https://localhost:8443/api/dashboard', {
+                headers: { 'Authorization': 'Bearer ' + token }
             });
 
-            if (respuesta.status === 401 || respuesta.status === 403) {
+            if (respDash.status === 401 || respDash.status === 403) {
                 localStorage.clear();
                 window.location.href = 'index.html';
                 return;
             }
+            if (!respDash.ok) throw new Error('No se pudo cargar el dashboard');
 
-            if (!respuesta.ok) {
-                throw new Error('No se pudo cargar el dashboard');
+            const datosDash = await respDash.json();
+            const resumen = datosDash.resumen;
+            const pendientes = datosDash.tareasPendientes;
+
+            // Folios reales de tarea (campo "codigo") vienen de /api/tareas,
+            // que el resumen del dashboard no incluye.
+            const respTareas = await fetch('https://localhost:8443/api/tareas?page=0&size=50', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const codigosPorId = {};
+            if (respTareas.ok) {
+                const datosTareas = await respTareas.json();
+                (datosTareas.content || []).forEach(function (t) { codigosPorId[t.idTarea] = t.codigo; });
             }
 
-            const datos = await respuesta.json();
-            const resumen = datos.resumen;
-            const tareas = datos.tareasPendientes;
-
-            document.getElementById('resumenTareas').textContent =
-                `${resumen.tareasPendientes} tarea(s) pendiente(s)`;
-
-            document.getElementById('resumenPromedio').textContent =
-                resumen.promedioGeneral != null
-                    ? `Promedio general: ${resumen.promedioGeneral}`
-                    : 'Aún sin calificaciones';
-
-            if (tareas.length === 0) {
-                document.getElementById('tareasPendientes').innerHTML =
-                    '<p class="text-muted">No tienes tareas pendientes. <i class="bi bi-check-circle-fill" aria-hidden="true"></i></p>';
+            // --- Estadística: próxima entrega (real: resumen.proximaEntrega) ---
+            if (resumen.proximaEntrega) {
+                document.getElementById('statProximaEntrega').textContent = formatearFecha(resumen.proximaEntrega);
+                document.getElementById('statProximaEntregaSub').textContent = 'Fecha límite más cercana';
             } else {
-                document.getElementById('tareasPendientes').innerHTML = tareas.map(t => `
-                    <div class="aviso-item">
-                        <strong>${t.titulo}</strong> — ${t.materia}<br>
-                        <span class="text-muted small">Entrega: ${t.fechaEntrega} (en ${t.diasRestantes} día(s))</span>
-                    </div>
-                `).join('');
+                document.getElementById('statProximaEntrega').textContent = 'Ninguna';
+                document.getElementById('statProximaEntregaSub').textContent = 'No tienes entregas próximas';
             }
 
+            // --- Estadística: tareas pendientes ---
+            document.getElementById('statTareas').textContent = resumen.tareasPendientes;
+            document.getElementById('statTareasSub').textContent =
+                resumen.tareasPendientes === 1 ? 'tarea por entregar' : 'tareas por entregar';
+
+            // --- Estadística: promedio ---
+            if (resumen.promedioGeneral != null) {
+                document.getElementById('statPromedio').textContent = resumen.promedioGeneral + ' / 10';
+                document.getElementById('statPromedioSub').textContent = 'Promedio general';
+            } else {
+                document.getElementById('statPromedio').textContent = '—';
+                document.getElementById('statPromedioSub').textContent = 'Aún sin calificaciones';
+            }
+
+            // --- Estadística: avisos ---
+            document.getElementById('statAvisos').textContent = resumen.avisosNoLeidos;
+            if (resumen.avisosNoLeidos === 0) {
+                document.getElementById('statAvisosBox').classList.remove('alert');
+            }
+
+            // --- Lista de tareas pendientes (fichas tipo talón) ---
+            const cont = document.getElementById('tareasPendientes');
+            if (!pendientes || pendientes.length === 0) {
+                cont.innerHTML = '<div class="empty-note">No tienes tareas pendientes.</div>';
+            } else {
+                cont.innerHTML = pendientes.map(function (t) {
+                    var codigo = codigosPorId[t.idTarea] || ('TAR-' + t.idTarea);
+                    var vencida = t.diasRestantes < 0;
+                    var pocoTiempo = !vencida && t.diasRestantes <= 2;
+                    var fechaTexto = vencida
+                        ? 'venció hace ' + Math.abs(t.diasRestantes) + ' día(s)'
+                        : t.diasRestantes + ' día(s) restante(s)';
+                    return '' +
+                    '<div class="ticket">' +
+                        '<div>' +
+                            '<div class="ticket-code">' + codigo + '</div>' +
+                            '<div class="ticket-materia">' + t.materia + '</div>' +
+                        '</div>' +
+                        '<div>' +
+                            '<div class="ticket-titulo">' + t.titulo + '</div>' +
+                            '<div class="ticket-meta">Entrega</div>' +
+                            '<div class="ticket-fecha ' + (pocoTiempo ? 'dias-poco' : '') + '">' +
+                                formatearFecha(t.fechaEntrega) + ' · ' + fechaTexto +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="stamp ' + (vencida ? 'vencida' : 'pendiente') + '">' +
+                            (vencida ? '★ VENCIDA ★' : '★ PENDIENTE ★') +
+                        '</div>' +
+                    '</div>';
+                }).join('');
+            }
+
+            // --- Avisos ---
             document.getElementById('avisos').innerHTML = resumen.avisosNoLeidos > 0
-                ? `<div class="aviso-item">Tienes <strong>${resumen.avisosNoLeidos}</strong> aviso(s) sin leer.</div>`
-                : '<p class="text-muted">No hay avisos pendientes por el momento.</p>';
+                ? 'Tienes <strong>' + resumen.avisosNoLeidos + '</strong> aviso(s) sin leer.'
+                : 'No hay avisos pendientes por el momento.';
 
         } catch (error) {
             document.getElementById('tareasPendientes').innerHTML =
-                '<p class="text-danger">No se pudo cargar la información del dashboard.</p>';
-            document.getElementById('avisos').innerHTML =
-                '<p class="text-danger">No se pudo cargar la información del dashboard.</p>';
+                '<div class="error-note">No se pudo cargar la información del dashboard.</div>';
+            document.getElementById('avisos').textContent =
+                'No se pudo cargar la información del dashboard.';
         }
     }
 
@@ -176,13 +753,9 @@
         try {
             const respuesta = await fetch('https://localhost:8443/api/dashboard/avisos/marcar-leidos', {
                 method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: { 'Authorization': 'Bearer ' + token }
             });
-
-            if (!respuesta.ok) {
-                throw new Error('No se pudo actualizar los avisos');
-            }
-
+            if (!respuesta.ok) throw new Error('No se pudo actualizar los avisos');
             await cargarDashboard();
         } catch (error) {
             alert('No se pudieron marcar los avisos como leídos.');
@@ -194,5 +767,10 @@
         window.location.href = 'index.html';
     }
 </script>
+<a class="chat-fab" href="chatbot.html" aria-label="Abrir asistente virtual">
+    <span class="chat-fab-tooltip">Preguntar al asistente</span>
+    <img src="img/bot-avatar.png" alt="Asistente virtual">
+</a>
 </body>
+
 </html>
