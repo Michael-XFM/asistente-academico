@@ -12,8 +12,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -26,7 +28,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping(&quot;/api/calificaciones&quot;)
 @CrossOrigin(origins = {&quot;http://localhost:8080&quot;, &quot;http://localhost&quot;})
-<span class="fc" id="L29">public class CalificacionController {</span>
+<span class="fc" id="L31">public class CalificacionController {</span>
 
     @Autowired
     private CalificacionRepository calificacionRepository;
@@ -34,30 +36,63 @@ import java.util.Optional;
     @Autowired
     private UsuarioService usuarioService;
 
+    /**
+     * Lista completa de calificaciones del usuario AUTENTICADO (materia +
+     * nota cada una), a diferencia de /reporte que solo da el resumen
+     * agregado (promedio, mejor/peor materia). Igual que en reporte(), el
+     * id_usuario se resuelve del JWT, nunca de un parametro del cliente.
+     *
+     * Se aplana a un DTO local {materia, nota} en vez de devolver la
+     * entidad Calificacion tal cual: la entidad trae &quot;materia&quot; como el
+     * objeto Materia completo (id_materia + nombre), y calificaciones.html
+     * ya espera &quot;materia&quot; como el nombre en texto plano.
+     */
+    @GetMapping
+    public ResponseEntity&lt;?&gt; listar(Authentication authentication, HttpServletRequest request) {
+<span class="nc" id="L52">        Optional&lt;Usuario&gt; usuarioOpt = usuarioService.buscarPorEmail(authentication.getName());</span>
+<span class="nc bnc" id="L53" title="All 2 branches missed.">        if (usuarioOpt.isEmpty()) {</span>
+<span class="nc" id="L54">            return errorUsuarioNoEncontrado(request);</span>
+        }
+
+<span class="nc" id="L57">        List&lt;CalificacionListado&gt; calificaciones = calificacionRepository</span>
+<span class="nc" id="L58">                .findByUsuario_IdUsuario(usuarioOpt.get().getIdUsuario())</span>
+<span class="nc" id="L59">                .stream()</span>
+<span class="nc" id="L60">                .map(c -&gt; new CalificacionListado(c.getMateria().getNombre(), c.getNota()))</span>
+<span class="nc" id="L61">                .toList();</span>
+<span class="nc" id="L62">        return ResponseEntity.ok(calificaciones);</span>
+    }
+
     @GetMapping(&quot;/reporte&quot;)
     public ResponseEntity&lt;?&gt; reporte(Authentication authentication, HttpServletRequest request) {
-<span class="nc" id="L39">        Optional&lt;Usuario&gt; usuarioOpt = usuarioService.buscarPorEmail(authentication.getName());</span>
-<span class="nc bnc" id="L40" title="All 2 branches missed.">        if (usuarioOpt.isEmpty()) {</span>
-<span class="nc" id="L41">            ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
-                    HttpStatus.NOT_FOUND, &quot;El usuario del token no existe en el sistema.&quot;);
-<span class="nc" id="L43">            problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/usuario-no-encontrado&quot;));</span>
-<span class="nc" id="L44">            problema.setTitle(&quot;Usuario no encontrado&quot;);</span>
-<span class="nc" id="L45">            problema.setInstance(URI.create(request.getRequestURI()));</span>
-<span class="nc" id="L46">            return ResponseEntity.status(HttpStatus.NOT_FOUND)</span>
-<span class="nc" id="L47">                    .contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
+<span class="nc" id="L67">        Optional&lt;Usuario&gt; usuarioOpt = usuarioService.buscarPorEmail(authentication.getName());</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">        if (usuarioOpt.isEmpty()) {</span>
+<span class="nc" id="L69">            return errorUsuarioNoEncontrado(request);</span>
         }
 
         // Con parametros OUT, Spring Data devuelve un Map&lt;String,Object&gt;
         // cuyas claves son los nombres declarados en @StoredProcedureParameter.
         // Si el usuario no tiene calificaciones, los cuatro valores llegan
         // en null (ver comentario en sp_reporte_calificaciones.sql).
-<span class="nc" id="L54">        Map&lt;String, Object&gt; resultado = calificacionRepository.reporteCalificaciones(usuarioOpt.get().getIdUsuario());</span>
-<span class="nc" id="L55">        Map&lt;String, Object&gt; respuesta = new HashMap&lt;&gt;();</span>
-<span class="nc" id="L56">        respuesta.put(&quot;promedio&quot;, resultado.get(&quot;p_promedio&quot;));</span>
-<span class="nc" id="L57">        respuesta.put(&quot;totalMaterias&quot;, resultado.get(&quot;p_total_materias&quot;));</span>
-<span class="nc" id="L58">        respuesta.put(&quot;mejorMateria&quot;, resultado.get(&quot;p_mejor_materia&quot;));</span>
-<span class="nc" id="L59">        respuesta.put(&quot;peorMateria&quot;, resultado.get(&quot;p_peor_materia&quot;));</span>
-<span class="nc" id="L60">        return ResponseEntity.ok(respuesta);</span>
+<span class="nc" id="L76">        Map&lt;String, Object&gt; resultado = calificacionRepository.reporteCalificaciones(usuarioOpt.get().getIdUsuario());</span>
+<span class="nc" id="L77">        Map&lt;String, Object&gt; respuesta = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L78">        respuesta.put(&quot;promedio&quot;, resultado.get(&quot;p_promedio&quot;));</span>
+<span class="nc" id="L79">        respuesta.put(&quot;totalMaterias&quot;, resultado.get(&quot;p_total_materias&quot;));</span>
+<span class="nc" id="L80">        respuesta.put(&quot;mejorMateria&quot;, resultado.get(&quot;p_mejor_materia&quot;));</span>
+<span class="nc" id="L81">        respuesta.put(&quot;peorMateria&quot;, resultado.get(&quot;p_peor_materia&quot;));</span>
+<span class="nc" id="L82">        return ResponseEntity.ok(respuesta);</span>
+    }
+
+    private ResponseEntity&lt;ProblemDetail&gt; errorUsuarioNoEncontrado(HttpServletRequest request) {
+<span class="nc" id="L86">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+                HttpStatus.NOT_FOUND, &quot;El usuario del token no existe en el sistema.&quot;);
+<span class="nc" id="L88">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/usuario-no-encontrado&quot;));</span>
+<span class="nc" id="L89">        problema.setTitle(&quot;Usuario no encontrado&quot;);</span>
+<span class="nc" id="L90">        problema.setInstance(URI.create(request.getRequestURI()));</span>
+<span class="nc" id="L91">        return ResponseEntity.status(HttpStatus.NOT_FOUND)</span>
+<span class="nc" id="L92">                .contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
+    }
+
+<span class="nc" id="L95">    private record CalificacionListado(String materia, BigDecimal nota) {</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,39 +1,63 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>HorarioController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">com.uteq.asistente_academico.controller</a> &gt; <span class="el_source">HorarioController.java</span></div><h1>HorarioController.java</h1><pre class="source lang-java linenums">package com.uteq.asistente_academico.controller;
 
+import com.uteq.asistente_academico.entity.Horario;
+import com.uteq.asistente_academico.entity.Usuario;
 import com.uteq.asistente_academico.repository.HorarioRepository;
+import com.uteq.asistente_academico.service.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalTime;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
- * Validación de horarios (Bloque A.2 — estrategia híbrida de acceso a
- * datos, categoría &quot;validaciones cruzadas&quot;). No incluye CRUD completo de
- * Horario porque el frontend actual no gestiona horarios: este endpoint
- * existe puntualmente para poder invocar y demostrar
- * fn_validar_disponibilidad_horario desde una ruta HTTP real.
+ * Horarios: listado propio (vía matrícula) y validación cruzada de
+ * disponibilidad de aula (Bloque A.2, categoría &quot;validaciones cruzadas&quot;).
+ * No incluye CRUD completo de Horario porque el frontend no lo gestiona
+ * (los horarios los carga un administrador directo en base de datos).
  */
 @RestController
 @RequestMapping(&quot;/api/horarios&quot;)
 @CrossOrigin(origins = {&quot;http://localhost:8080&quot;, &quot;http://localhost&quot;})
-<span class="fc" id="L21">public class HorarioController {</span>
+<span class="fc" id="L26">public class HorarioController {</span>
 
     @Autowired
     private HorarioRepository horarioRepository;
 
-<span class="nc" id="L26">    public record ValidarDisponibilidadRequest(String diaSemana, LocalTime horaInicio, LocalTime horaFin, String aula) {</span>
+    @Autowired
+    private UsuarioService usuarioService;
+
+<span class="nc" id="L34">    public record ValidarDisponibilidadRequest(String diaSemana, LocalTime horaInicio, LocalTime horaFin, String aula) {</span>
+    }
+
+    /**
+     * Desbloquea horarios.html: un estudiante solo ve horario de las
+     * materias donde tiene una fila en Matricula. Usuario siempre
+     * resuelto desde el JWT, nunca de un parámetro del cliente (mismo
+     * criterio que TareaController/DashboardController).
+     */
+    @GetMapping(&quot;/mios&quot;)
+    public ResponseEntity&lt;?&gt; misHorarios(Authentication authentication) {
+<span class="nc" id="L45">        Optional&lt;Usuario&gt; usuarioOpt = usuarioService.buscarPorEmail(authentication.getName());</span>
+<span class="nc bnc" id="L46" title="All 2 branches missed.">        if (usuarioOpt.isEmpty()) {</span>
+<span class="nc" id="L47">            return ResponseEntity.status(404).body(&quot;Usuario no encontrado&quot;);</span>
+        }
+<span class="nc" id="L49">        List&lt;Horario&gt; horarios = horarioRepository.findMisHorarios(usuarioOpt.get().getIdUsuario());</span>
+<span class="nc" id="L50">        return ResponseEntity.ok(horarios);</span>
     }
 
     @PostMapping(&quot;/validar-disponibilidad&quot;)
     public ResponseEntity&lt;?&gt; validarDisponibilidad(@RequestBody ValidarDisponibilidadRequest datos) {
-<span class="nc" id="L31">        Boolean disponible = horarioRepository.spValidarDisponibilidadHorario(</span>
-<span class="nc" id="L32">                datos.diaSemana(), datos.horaInicio(), datos.horaFin(), datos.aula());</span>
-<span class="nc" id="L33">        return ResponseEntity.ok(Map.of(</span>
+<span class="nc" id="L55">        Boolean disponible = horarioRepository.spValidarDisponibilidadHorario(</span>
+<span class="nc" id="L56">                datos.diaSemana(), datos.horaInicio(), datos.horaFin(), datos.aula());</span>
+<span class="nc" id="L57">        return ResponseEntity.ok(Map.of(</span>
                 &quot;disponible&quot;, disponible,
-<span class="nc" id="L35">                &quot;diaSemana&quot;, datos.diaSemana(),</span>
-<span class="nc" id="L36">                &quot;aula&quot;, datos.aula()</span>
+<span class="nc" id="L59">                &quot;diaSemana&quot;, datos.diaSemana(),</span>
+<span class="nc" id="L60">                &quot;aula&quot;, datos.aula()</span>
         ));
     }
 }
