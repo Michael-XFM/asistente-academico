@@ -5,6 +5,7 @@ import com.uteq.asistente_academico.repository.TareaRepository;
 import com.uteq.asistente_academico.repository.UsuarioRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -51,6 +52,19 @@ public class AdminController {
         return ResponseEntity.ok(usuarioRepository.findAll());
     }
 
+    /**
+     * OWASP A09 / integridad de datos: un usuario con tareas, avisos,
+     * calificaciones o matriculas asociadas NO se borra en cascada
+     * silenciosamente. Borrar en cascada perderia registros reales
+     * (tareas, notas) sin que nadie lo decida a proposito -- si el admin
+     * de verdad quiere dar de baja a alguien con historial, esa es una
+     * decision de negocio que hoy no esta implementada (habria que
+     * decidir si se anonimiza, se archiva o se borra en cascada
+     * explicitamente), no un efecto secundario silencioso de este
+     * endpoint. Por eso la FK en la base de datos NO tiene ON DELETE
+     * CASCADE, y aca se traduce esa violacion a un 409 explicito en vez
+     * de dejar que se escape como 500 generico.
+     */
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/usuarios/{id}")
     public ResponseEntity<?> eliminarUsuario(HttpServletRequest request, @PathVariable Integer id) {
@@ -63,7 +77,20 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);
         }
-        usuarioRepository.deleteById(id);
+        try {
+            usuarioRepository.deleteById(id);
+        } catch (DataIntegrityViolationException e) {
+            ProblemDetail problema = ProblemDetail.forStatusAndDetail(
+                    HttpStatus.CONFLICT,
+                    "No se puede eliminar el usuario " + id + " porque tiene tareas, calificaciones, " +
+                            "avisos o matrículas asociadas. Elimina o reasigna esos registros primero."
+            );
+            problema.setType(URI.create("https://asistente-academico.uteq.edu.ec/errores/usuario-con-registros-asociados"));
+            problema.setTitle("Conflicto: usuario con registros asociados");
+            problema.setInstance(URI.create(request.getRequestURI()));
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);
+        }
         return ResponseEntity.noContent().build();
     }
 

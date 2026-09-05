@@ -275,10 +275,17 @@
                 headers: headers()
             });
             if (manejarSesionInvalida(resp.status)) return;
-            if (!resp.ok) throw new Error();
+            if (!resp.ok) {
+                // El backend devuelve ProblemDetail (RFC 7807) con el
+                // motivo real -- por ejemplo 409 si el usuario tiene
+                // tareas/calificaciones/avisos asociados. Se muestra ese
+                // mensaje específico en vez de uno genérico.
+                const problema = await resp.json().catch(function () { return null; });
+                throw new Error(problema && problema.detail ? problema.detail : 'No se pudo eliminar el usuario.');
+            }
             await cargarUsuarios();
         } catch (e) {
-            alert('No se pudo eliminar el usuario.');
+            alert(e.message || 'No se pudo eliminar el usuario.');
         }
     }
 
