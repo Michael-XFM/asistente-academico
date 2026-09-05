@@ -643,6 +643,38 @@
         return d + ' ' + meses[parseInt(m, 10) - 1] + ' ' + y;
     }
 
+    // Combina fecha_entrega (DATE) + hora_limite (TIME, "23:59:59" si la
+    // tarea no tiene una fijada) en un instante exacto, y devuelve los
+    // segundos que faltan hasta ahí (negativo si ya pasó). Se calcula acá
+    // en vez de reusar el segundosRestantes que ya manda el backend
+    // (fn_listar_tareas_pendientes) para poder refrescar la cuenta
+    // regresiva sin volver a pedir datos al servidor cada minuto.
+    function segundosHastaLimite(fechaEntrega, horaLimite) {
+        var limite = new Date(fechaEntrega + 'T' + (horaLimite || '23:59:59'));
+        return Math.floor((limite - new Date()) / 1000);
+    }
+
+    function formatearHoraLimite(horaLimite) {
+        return (horaLimite || '23:59:59').slice(0, 5);
+    }
+
+    function formatearCuentaRegresiva(segundos) {
+        var vencida = segundos < 0;
+        var abs = Math.abs(segundos);
+        var dias = Math.floor(abs / 86400);
+        var horas = Math.floor((abs % 86400) / 3600);
+        var minutos = Math.floor((abs % 3600) / 60);
+        var partes = [];
+        if (dias > 0) partes.push(dias + 'd');
+        if (dias > 0 || horas > 0) partes.push(horas + 'h');
+        partes.push(minutos + 'm');
+        var texto = partes.slice(0, 2).join(' ');
+        return vencida ? 'venció hace ' + texto : 'quedan ' + texto;
+    }
+
+    let pendientesCache = [];
+    let codigosPorIdCache = {};
+
     async function cargarDashboard() {
         try {
             // Resumen académico + tareas pendientes (fn_obtener_resumen_academico
@@ -672,6 +704,9 @@
                 const datosTareas = await respTareas.json();
                 (datosTareas.content || []).forEach(function (t) { codigosPorId[t.idTarea] = t.codigo; });
             }
+
+            pendientesCache = pendientes || [];
+            codigosPorIdCache = codigosPorId;
 
             // --- Estadística: próxima entrega (real: resumen.proximaEntrega) ---
             if (resumen.proximaEntrega) {
@@ -703,36 +738,7 @@
             }
 
             // --- Lista de tareas pendientes (fichas tipo talón) ---
-            const cont = document.getElementById('tareasPendientes');
-            if (!pendientes || pendientes.length === 0) {
-                cont.innerHTML = '<div class="empty-note">No tienes tareas pendientes.</div>';
-            } else {
-                cont.innerHTML = pendientes.map(function (t) {
-                    var codigo = codigosPorId[t.idTarea] || ('TAR-' + t.idTarea);
-                    var vencida = t.diasRestantes < 0;
-                    var pocoTiempo = !vencida && t.diasRestantes <= 2;
-                    var fechaTexto = vencida
-                        ? 'venció hace ' + Math.abs(t.diasRestantes) + ' día(s)'
-                        : t.diasRestantes + ' día(s) restante(s)';
-                    return '' +
-                    '<div class="ticket">' +
-                        '<div>' +
-                            '<div class="ticket-code">' + codigo + '</div>' +
-                            '<div class="ticket-materia">' + t.materia + '</div>' +
-                        '</div>' +
-                        '<div>' +
-                            '<div class="ticket-titulo">' + t.titulo + '</div>' +
-                            '<div class="ticket-meta">Entrega</div>' +
-                            '<div class="ticket-fecha ' + (pocoTiempo ? 'dias-poco' : '') + '">' +
-                                formatearFecha(t.fechaEntrega) + ' · ' + fechaTexto +
-                            '</div>' +
-                        '</div>' +
-                        '<div class="stamp ' + (vencida ? 'vencida' : 'pendiente') + '">' +
-                            (vencida ? '★ VENCIDA ★' : '★ PENDIENTE ★') +
-                        '</div>' +
-                    '</div>';
-                }).join('');
-            }
+            renderizarTareasPendientes();
 
             // --- Avisos ---
             document.getElementById('avisos').innerHTML = resumen.avisosNoLeidos > 0
@@ -747,7 +753,42 @@
         }
     }
 
+    function renderizarTareasPendientes() {
+        const cont = document.getElementById('tareasPendientes');
+        if (!pendientesCache.length) {
+            cont.innerHTML = '<div class="empty-note">No tienes tareas pendientes.</div>';
+            return;
+        }
+        cont.innerHTML = pendientesCache.map(function (t) {
+            var codigo = codigosPorIdCache[t.idTarea] || ('TAR-' + t.idTarea);
+            var seg = segundosHastaLimite(t.fechaEntrega, t.horaLimite);
+            var vencida = seg < 0;
+            var pocoTiempo = !vencida && seg <= 2 * 86400;
+            return '' +
+            '<div class="ticket">' +
+                '<div>' +
+                    '<div class="ticket-code">' + codigo + '</div>' +
+                    '<div class="ticket-materia">' + t.materia + '</div>' +
+                '</div>' +
+                '<div>' +
+                    '<div class="ticket-titulo">' + t.titulo + '</div>' +
+                    '<div class="ticket-meta">Entrega</div>' +
+                    '<div class="ticket-fecha ' + (pocoTiempo ? 'dias-poco' : '') + '">' +
+                        formatearFecha(t.fechaEntrega) + ' · cierra ' + formatearHoraLimite(t.horaLimite) + ' · ' + formatearCuentaRegresiva(seg) +
+                    '</div>' +
+                '</div>' +
+                '<div class="stamp ' + (vencida ? 'vencida' : 'pendiente') + '">' +
+                    (vencida ? '★ VENCIDA ★' : '★ PENDIENTE ★') +
+                '</div>' +
+            '</div>';
+        }).join('');
+    }
+
     cargarDashboard();
+
+    // Refresca solo el render (sin volver a pedir datos al backend) para
+    // que la cuenta regresiva no quede congelada en el momento de la carga.
+    setInterval(renderizarTareasPendientes, 60000);
 
     async function marcarAvisosLeidos() {
         try {

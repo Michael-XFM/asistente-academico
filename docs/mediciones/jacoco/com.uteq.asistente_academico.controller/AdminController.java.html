@@ -5,6 +5,7 @@ import com.uteq.asistente_academico.repository.TareaRepository;
 import com.uteq.asistente_academico.repository.UsuarioRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -35,7 +36,7 @@ import java.net.URI;
 @RestController
 @RequestMapping(&quot;/api/admin&quot;)
 @CrossOrigin(origins = {&quot;http://localhost:8080&quot;, &quot;http://localhost&quot;})
-<span class="fc" id="L38">public class AdminController {</span>
+<span class="fc" id="L39">public class AdminController {</span>
 
     @Autowired
     private UsuarioRepository usuarioRepository;
@@ -48,23 +49,49 @@ import java.net.URI;
     public ResponseEntity&lt;?&gt; listarUsuarios() {
         // Usuario.contrasena tiene @JsonIgnore, asi que el hash nunca
         // sale en esta respuesta aunque se devuelva la entidad completa.
-<span class="nc" id="L51">        return ResponseEntity.ok(usuarioRepository.findAll());</span>
+<span class="nc" id="L52">        return ResponseEntity.ok(usuarioRepository.findAll());</span>
     }
 
+    /**
+     * OWASP A09 / integridad de datos: un usuario con tareas, avisos,
+     * calificaciones o matriculas asociadas NO se borra en cascada
+     * silenciosamente. Borrar en cascada perderia registros reales
+     * (tareas, notas) sin que nadie lo decida a proposito -- si el admin
+     * de verdad quiere dar de baja a alguien con historial, esa es una
+     * decision de negocio que hoy no esta implementada (habria que
+     * decidir si se anonimiza, se archiva o se borra en cascada
+     * explicitamente), no un efecto secundario silencioso de este
+     * endpoint. Por eso la FK en la base de datos NO tiene ON DELETE
+     * CASCADE, y aca se traduce esa violacion a un 409 explicito en vez
+     * de dejar que se escape como 500 generico.
+     */
     @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
     @DeleteMapping(&quot;/usuarios/{id}&quot;)
     public ResponseEntity&lt;?&gt; eliminarUsuario(HttpServletRequest request, @PathVariable Integer id) {
-<span class="nc bnc" id="L57" title="All 2 branches missed.">        if (!usuarioRepository.existsById(id)) {</span>
-<span class="nc" id="L58">            ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+<span class="nc bnc" id="L71" title="All 2 branches missed.">        if (!usuarioRepository.existsById(id)) {</span>
+<span class="nc" id="L72">            ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
                     HttpStatus.NOT_FOUND, &quot;No existe un usuario con id &quot; + id + &quot;.&quot;);
-<span class="nc" id="L60">            problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/usuario-no-encontrado&quot;));</span>
-<span class="nc" id="L61">            problema.setTitle(&quot;Usuario no encontrado&quot;);</span>
-<span class="nc" id="L62">            problema.setInstance(URI.create(request.getRequestURI()));</span>
-<span class="nc" id="L63">            return ResponseEntity.status(HttpStatus.NOT_FOUND)</span>
-<span class="nc" id="L64">                    .contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
+<span class="nc" id="L74">            problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/usuario-no-encontrado&quot;));</span>
+<span class="nc" id="L75">            problema.setTitle(&quot;Usuario no encontrado&quot;);</span>
+<span class="nc" id="L76">            problema.setInstance(URI.create(request.getRequestURI()));</span>
+<span class="nc" id="L77">            return ResponseEntity.status(HttpStatus.NOT_FOUND)</span>
+<span class="nc" id="L78">                    .contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
         }
-<span class="nc" id="L66">        usuarioRepository.deleteById(id);</span>
-<span class="nc" id="L67">        return ResponseEntity.noContent().build();</span>
+        try {
+<span class="nc" id="L81">            usuarioRepository.deleteById(id);</span>
+<span class="nc" id="L82">        } catch (DataIntegrityViolationException e) {</span>
+<span class="nc" id="L83">            ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+                    HttpStatus.CONFLICT,
+                    &quot;No se puede eliminar el usuario &quot; + id + &quot; porque tiene tareas, calificaciones, &quot; +
+                            &quot;avisos o matrículas asociadas. Elimina o reasigna esos registros primero.&quot;
+            );
+<span class="nc" id="L88">            problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/usuario-con-registros-asociados&quot;));</span>
+<span class="nc" id="L89">            problema.setTitle(&quot;Conflicto: usuario con registros asociados&quot;);</span>
+<span class="nc" id="L90">            problema.setInstance(URI.create(request.getRequestURI()));</span>
+<span class="nc" id="L91">            return ResponseEntity.status(HttpStatus.CONFLICT)</span>
+<span class="nc" id="L92">                    .contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
+<span class="nc" id="L93">        }</span>
+<span class="nc" id="L94">        return ResponseEntity.noContent().build();</span>
     }
 
     @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
@@ -72,8 +99,8 @@ import java.net.URI;
     public ResponseEntity&lt;Page&lt;Tarea&gt;&gt; listarTodasLasTareas(
             @RequestParam(defaultValue = &quot;0&quot;) int page,
             @RequestParam(defaultValue = &quot;10&quot;) int size) {
-<span class="nc" id="L75">        Pageable pageable = PageRequest.of(page, size);</span>
-<span class="nc" id="L76">        return ResponseEntity.ok(tareaRepository.findAll(pageable));</span>
+<span class="nc" id="L102">        Pageable pageable = PageRequest.of(page, size);</span>
+<span class="nc" id="L103">        return ResponseEntity.ok(tareaRepository.findAll(pageable));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

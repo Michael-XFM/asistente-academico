@@ -424,11 +424,30 @@
         return p[2] + ' ' + meses[parseInt(p[1], 10) - 1] + ' ' + p[0];
     }
 
-    function diasRestantes(iso) {
-        var hoy = new Date();
-        hoy.setHours(0,0,0,0);
-        var f = new Date(iso + 'T00:00:00');
-        return Math.round((f - hoy) / 86400000);
+    // Combina fecha_entrega (DATE) + hora_limite (TIME, "23:59:59" si la
+    // tarea no tiene una fijada) en un instante exacto, y devuelve los
+    // segundos que faltan hasta ahí (negativo si ya pasó).
+    function segundosHastaLimite(fechaEntrega, horaLimite) {
+        var limite = new Date(fechaEntrega + 'T' + (horaLimite || '23:59:59'));
+        return Math.floor((limite - new Date()) / 1000);
+    }
+
+    function formatearHoraLimite(horaLimite) {
+        return (horaLimite || '23:59:59').slice(0, 5);
+    }
+
+    function formatearCuentaRegresiva(segundos) {
+        var vencida = segundos < 0;
+        var abs = Math.abs(segundos);
+        var dias = Math.floor(abs / 86400);
+        var horas = Math.floor((abs % 86400) / 3600);
+        var minutos = Math.floor((abs % 3600) / 60);
+        var partes = [];
+        if (dias > 0) partes.push(dias + 'd');
+        if (dias > 0 || horas > 0) partes.push(horas + 'h');
+        partes.push(minutos + 'm');
+        var texto = partes.slice(0, 2).join(' ');
+        return vencida ? 'venció hace ' + texto : 'quedan ' + texto;
     }
 
     async function cargarMaterias() {
@@ -477,13 +496,13 @@
     function renderizar() {
         const cont = document.getElementById('listaTareas');
         let lista = tareasCache.slice().sort(function (a, b) {
-            return new Date(a.fechaEntrega) - new Date(b.fechaEntrega);
+            return segundosHastaLimite(a.fechaEntrega, a.horaLimite) - segundosHastaLimite(b.fechaEntrega, b.horaLimite);
         });
 
         lista = lista.filter(function (t) {
-            const dr = diasRestantes(t.fechaEntrega);
-            if (filtroActual === 'pendientes') return dr >= 0;
-            if (filtroActual === 'vencidas') return dr < 0;
+            const seg = segundosHastaLimite(t.fechaEntrega, t.horaLimite);
+            if (filtroActual === 'pendientes') return seg >= 0;
+            if (filtroActual === 'vencidas') return seg < 0;
             return true;
         });
 
@@ -493,13 +512,10 @@
         }
 
         cont.innerHTML = lista.map(function (t) {
-            const dr = diasRestantes(t.fechaEntrega);
-            const vencida = dr < 0;
-            const pocoTiempo = !vencida && dr <= 2;
+            const seg = segundosHastaLimite(t.fechaEntrega, t.horaLimite);
+            const vencida = seg < 0;
+            const pocoTiempo = !vencida && seg <= 2 * 86400;
             const materiaNombre = t.materia ? t.materia.nombre : '—';
-            const fechaTexto = vencida
-                ? 'venció hace ' + Math.abs(dr) + ' día(s)'
-                : dr + ' día(s) restante(s)';
             return '' +
             '<div class="ticket">' +
                 '<div>' +
@@ -511,7 +527,7 @@
                     '<div class="ticket-desc" title="' + (t.descripcion || '').replace(/"/g, '&quot;') + '">' + (t.descripcion || '') + '</div>' +
                     '<div class="ticket-meta" style="margin-top:6px;">Entrega</div>' +
                     '<div class="ticket-fecha ' + (pocoTiempo ? 'dias-poco' : '') + '">' +
-                        formatearFecha(t.fechaEntrega) + ' · ' + fechaTexto +
+                        formatearFecha(t.fechaEntrega) + ' · cierra ' + formatearHoraLimite(t.horaLimite) + ' · ' + formatearCuentaRegresiva(seg) +
                     '</div>' +
                 '</div>' +
                 '<div class="stamp ' + (vencida ? 'vencida' : 'pendiente') + '">' +
@@ -610,6 +626,10 @@
 
     cargarMaterias();
     cargarTareas();
+
+    // Refresca solo el render (sin volver a pedir datos al backend) para
+    // que la cuenta regresiva no quede congelada en el momento de la carga.
+    setInterval(renderizar, 60000);
 </script>
 <a class="chat-fab" href="chatbot.html" aria-label="Abrir asistente virtual">
     <span class="chat-fab-tooltip">Preguntar al asistente</span>

@@ -53,7 +53,8 @@ CREATE TABLE tareas (
                         titulo        VARCHAR(200) NOT NULL,
                         descripcion   TEXT NOT NULL,
                         fecha_entrega DATE NOT NULL,
-                        codigo        VARCHAR(20)
+                        codigo        VARCHAR(20),
+                        hora_limite   TIME NOT NULL DEFAULT '23:59:59'
 );
 
 CREATE TABLE calificaciones (

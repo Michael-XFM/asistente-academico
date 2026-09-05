@@ -11,12 +11,15 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.net.URI;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -36,9 +39,13 @@ import java.util.stream.Collectors;
  * tarea de un estudiante a otro. avisos.id_tarea sigue NOT NULL -- no
  * hay anuncios generales sueltos, a proposito, no se toco ese esquema.
  *
- * Alcance de "crear tareas": una tarea = un estudiante (opcion "a"
- * decidida explicitamente). La asignacion masiva a toda la materia de
- * una sola llamada queda anotada como mejora futura, no implementada.
+ * Alcance de "crear tareas": cada Tarea sigue siendo de UN estudiante
+ * (no existe un concepto de "tarea compartida" en el esquema). Hay dos
+ * formas de crearlas: una por una (POST /tareas) o en bloque para varios
+ * estudiantes a la vez (POST /tareas/masiva), que por dentro simplemente
+ * repite la misma creacion -- mismo titulo/descripcion/fecha/hora, un
+ * codigo de seguimiento independiente por estudiante (via
+ * sp_generar_codigo_tarea, igual que la creacion individual).
  */
 @RestController
 @RequestMapping("/api/profesor")
@@ -67,6 +74,12 @@ public class ProfesorController {
     private UsuarioRepository usuarioRepository;
 
     public record CrearTareaRequest(Integer idMateria, Integer idUsuario, String titulo, String descripcion, LocalDate fechaEntrega) {
+    }
+
+    public record CrearTareaMasivaRequest(Integer idMateria, List<Integer> idsUsuario, String titulo, String descripcion, LocalDate fechaEntrega, LocalTime horaLimite) {
+    }
+
+    public record ActualizarTareaRequest(String titulo, String descripcion, LocalDate fechaEntrega, LocalTime horaLimite) {
     }
 
     public record CrearAvisoRequest(Integer idTarea, String mensaje) {
@@ -152,6 +165,96 @@ public class ProfesorController {
         tarea.setDescripcion(datos.descripcion());
         tarea.setFechaEntrega(datos.fechaEntrega());
         tarea.setCodigo(tareaRepository.spGenerarCodigoTarea());
+
+        return ResponseEntity.ok(tareaRepository.save(tarea));
+    }
+
+    /**
+     * Crea la MISMA tarea (titulo/descripcion/fecha/hora) para varios
+     * estudiantes matriculados en una materia propia de una sola llamada.
+     * No es una tarea "compartida": se guarda una fila independiente por
+     * estudiante, cada una con su propio codigo de seguimiento -- son
+     * indistinguibles de tareas creadas una por una con POST /tareas.
+     *
+     * Validacion en dos pasadas: primero se valida que CADA idUsuario
+     * exista y este matriculado (sin escribir nada todavia); si alguno
+     * falla, se aborta la llamada completa con 404/403 y no se crea
+     * ninguna tarea -- evita el caso confuso de "se crearon 3 de 5 y las
+     * otras 2 fallaron". @Transactional refuerza esto: si algo fallara
+     * durante la segunda pasada (guardado), se revierte todo.
+     */
+    @PreAuthorize("hasRole('PROFESOR')")
+    @Transactional
+    @PostMapping("/tareas/masiva")
+    public ResponseEntity<?> crearTareaMasiva(Authentication authentication, HttpServletRequest request, @RequestBody CrearTareaMasivaRequest datos) {
+        Usuario profesor = resolverProfesor(authentication);
+        Optional<Materia> materiaOpt = validarMateriaPropia(datos.idMateria(), profesor);
+        if (materiaOpt.isEmpty()) {
+            return errorMateriaNoPropia(request, datos.idMateria());
+        }
+
+        if (datos.idsUsuario() == null || datos.idsUsuario().isEmpty()) {
+            return errorSinEstudiantesSeleccionados(request);
+        }
+
+        List<Usuario> estudiantes = new ArrayList<>();
+        for (Integer idUsuario : datos.idsUsuario()) {
+            Optional<Usuario> estudianteOpt = usuarioRepository.findById(idUsuario);
+            if (estudianteOpt.isEmpty()) {
+                return errorEstudianteNoEncontrado(request, idUsuario);
+            }
+            if (!matriculaRepository.existsByUsuario_IdUsuarioAndMateria_IdMateria(idUsuario, datos.idMateria())) {
+                return errorEstudianteNoMatriculado(request, idUsuario, datos.idMateria());
+            }
+            estudiantes.add(estudianteOpt.get());
+        }
+
+        List<Tarea> creadas = new ArrayList<>();
+        for (Usuario estudiante : estudiantes) {
+            Tarea tarea = new Tarea();
+            tarea.setMateria(materiaOpt.get());
+            tarea.setUsuario(estudiante);
+            tarea.setTitulo(datos.titulo());
+            tarea.setDescripcion(datos.descripcion());
+            tarea.setFechaEntrega(datos.fechaEntrega());
+            if (datos.horaLimite() != null) {
+                tarea.setHoraLimite(datos.horaLimite());
+            }
+            tarea.setCodigo(tareaRepository.spGenerarCodigoTarea());
+            creadas.add(tareaRepository.save(tarea));
+        }
+
+        return ResponseEntity.ok(creadas);
+    }
+
+    /**
+     * Edita titulo, descripcion, fecha y hora limite de una tarea ya
+     * publicada. La pertenencia se valida por la materia de LA TAREA (no
+     * por un idMateria del body, que no existe aca), igual que en
+     * crearAviso: 403 si la materia de la tarea no es del profesor
+     * autenticado (no 404, para no confirmar que la tarea existe si no
+     * es suya).
+     */
+    @PreAuthorize("hasRole('PROFESOR')")
+    @PutMapping("/tareas/{id}")
+    public ResponseEntity<?> actualizarTarea(Authentication authentication, HttpServletRequest request, @PathVariable Integer id, @RequestBody ActualizarTareaRequest datos) {
+        Usuario profesor = resolverProfesor(authentication);
+
+        Optional<Tarea> tareaOpt = tareaRepository.findById(id);
+        if (tareaOpt.isEmpty()) {
+            return errorTareaNoEncontrada(request, id);
+        }
+
+        Tarea tarea = tareaOpt.get();
+        Integer idMateriaDeLaTarea = tarea.getMateria().getIdMateria();
+        if (validarMateriaPropia(idMateriaDeLaTarea, profesor).isEmpty()) {
+            return errorMateriaNoPropia(request, idMateriaDeLaTarea);
+        }
+
+        tarea.setTitulo(datos.titulo());
+        tarea.setDescripcion(datos.descripcion());
+        tarea.setFechaEntrega(datos.fechaEntrega());
+        tarea.setHoraLimite(datos.horaLimite());
 
         return ResponseEntity.ok(tareaRepository.save(tarea));
     }
@@ -243,6 +346,15 @@ public class ProfesorController {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);
     }
 
+    private ResponseEntity<ProblemDetail> errorTareaNoEncontrada(HttpServletRequest request, Integer idTarea) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(
+                HttpStatus.NOT_FOUND, "No existe una tarea con id " + idTarea + ".");
+        problema.setType(URI.create("https://asistente-academico.uteq.edu.ec/errores/tarea-no-encontrada"));
+        problema.setTitle("Tarea no encontrada");
+        problema.setInstance(URI.create(request.getRequestURI()));
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);
+    }
+
     private ResponseEntity<ProblemDetail> errorEstudianteNoEncontrado(HttpServletRequest request, Integer idUsuario) {
         ProblemDetail problema = ProblemDetail.forStatusAndDetail(
                 HttpStatus.NOT_FOUND, "No existe un usuario con id " + idUsuario + ".");
@@ -250,6 +362,15 @@ public class ProfesorController {
         problema.setTitle("Usuario no encontrado");
         problema.setInstance(URI.create(request.getRequestURI()));
         return ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);
+    }
+
+    private ResponseEntity<ProblemDetail> errorSinEstudiantesSeleccionados(HttpServletRequest request) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST, "Selecciona al menos un estudiante.");
+        problema.setType(URI.create("https://asistente-academico.uteq.edu.ec/errores/sin-estudiantes-seleccionados"));
+        problema.setTitle("Solicitud inválida");
+        problema.setInstance(URI.create(request.getRequestURI()));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);
     }
 
     private ResponseEntity<ProblemDetail> errorEstudianteNoMatriculado(HttpServletRequest request, Integer idUsuario, Integer idMateria) {

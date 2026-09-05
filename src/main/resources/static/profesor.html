@@ -108,6 +108,47 @@
         }
         .error-note { color: var(--alert); }
 
+        /* ---------- Tareas publicadas ---------- */
+        .tarea-row {
+            display: flex; align-items: center; justify-content: space-between; gap: 14px;
+            background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+            padding: 14px 18px; margin-bottom: 10px; box-shadow: var(--shadow);
+        }
+        .tarea-row-main { flex: 1; min-width: 0; }
+        .tarea-codigo { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--faint); }
+        .tarea-titulo { font-weight: 700; font-size: 14px; margin: 2px 0; }
+        .tarea-meta { font-size: 12px; color: var(--muted); }
+        .tarea-edit-btn {
+            background: none; border: 1px solid var(--line); border-radius: 8px; padding: 8px;
+            cursor: pointer; color: var(--blue-academic); flex-shrink: 0; display: flex;
+        }
+        .tarea-edit-btn:hover { border-color: var(--blue-active); }
+
+        /* ---------- Checkboxes de estudiantes (crear tarea masiva) ---------- */
+        .checkbox-list {
+            border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+            max-height: 160px; overflow-y: auto; background: var(--bg);
+        }
+        .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 4px 0; cursor: pointer; }
+        .checkbox-item input { width: auto; }
+        .checkbox-item.todos { border-bottom: 1px solid var(--line); margin-bottom: 6px; padding-bottom: 8px; font-weight: 600; }
+
+        /* ---------- Modal de edición de tarea ---------- */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(6,43,87,0.45);
+            align-items: center; justify-content: center; z-index: 50; padding: 20px;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-card { background: var(--card); border-radius: 16px; padding: 26px; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(6,43,87,0.3); }
+        .modal-card h3 { font-family: 'Fraunces', serif; margin: 0 0 16px; color: var(--navy); }
+        .modal-actions { display: flex; gap: 10px; }
+        .modal-actions .btn-primary, .modal-actions .btn-secondary { flex: 1; width: auto; }
+        .btn-secondary {
+            background: none; border: 1px solid var(--line); color: var(--muted); padding: 11px 18px;
+            border-radius: 10px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer;
+        }
+        .btn-secondary:hover { border-color: var(--blue-active); color: var(--blue-academic); }
+
         @media (max-width: 1100px) { .forms-grid { grid-template-columns: 1fr 1fr; } }
         @media (max-width: 860px) {
             .layout { grid-template-columns: 1fr; }
@@ -157,6 +198,11 @@
             <div class="estudiantes-box" id="estudiantesBox"></div>
         </div>
 
+        <div id="tareasListaSection" style="display:none;">
+            <div class="section-head"><h2>Tareas publicadas</h2></div>
+            <div id="tareasListaBox"></div>
+        </div>
+
         <div id="formsSection" style="display:none;">
             <div class="section-head"><h2>Acciones sobre la materia seleccionada</h2></div>
             <div class="forms-grid">
@@ -167,8 +213,13 @@
                     <div class="form-msg" id="msgTarea"></div>
                     <form onsubmit="return crearTarea(event)">
                         <div class="field">
-                            <label for="tEstudiante">Estudiante</label>
-                            <select id="tEstudiante" required></select>
+                            <label>Estudiantes</label>
+                            <div class="checkbox-list">
+                                <label class="checkbox-item todos">
+                                    <input type="checkbox" id="tTodos" onchange="toggleTodosEstudiantes(this)"> Seleccionar todos
+                                </label>
+                                <div id="tEstudiantesCheckboxes"></div>
+                            </div>
                         </div>
                         <div class="field">
                             <label for="tTitulo">Título</label>
@@ -181,6 +232,10 @@
                         <div class="field">
                             <label for="tFecha">Fecha de entrega</label>
                             <input type="date" id="tFecha" required>
+                        </div>
+                        <div class="field">
+                            <label for="tHora">Hora límite (opcional, 23:59 si se deja vacío)</label>
+                            <input type="time" id="tHora">
                         </div>
                         <button type="submit" class="btn-primary">Crear tarea</button>
                     </form>
@@ -226,6 +281,36 @@
             </div>
         </div>
     </main>
+</div>
+
+<div class="modal-overlay" id="modalEditarOverlay">
+    <div class="modal-card">
+        <h3>Editar tarea</h3>
+        <div class="form-msg" id="msgEditarTarea"></div>
+        <form onsubmit="return guardarEdicionTarea(event)">
+            <input type="hidden" id="eTareaId">
+            <div class="field">
+                <label for="eTitulo">Título</label>
+                <input type="text" id="eTitulo" maxlength="200" required>
+            </div>
+            <div class="field">
+                <label for="eDescripcion">Descripción</label>
+                <textarea id="eDescripcion" required></textarea>
+            </div>
+            <div class="field">
+                <label for="eFecha">Fecha de entrega</label>
+                <input type="date" id="eFecha" required>
+            </div>
+            <div class="field">
+                <label for="eHora">Hora límite</label>
+                <input type="time" id="eHora" required>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="cerrarModalEditar()">Cancelar</button>
+                <button type="submit" class="btn-primary">Guardar cambios</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script>
@@ -292,6 +377,7 @@
 
         document.getElementById('estudiantesTitulo').textContent = 'Estudiantes matriculados — ' + boton.textContent.trim();
         document.getElementById('estudiantesSection').style.display = '';
+        document.getElementById('tareasListaSection').style.display = '';
         document.getElementById('formsSection').style.display = '';
 
         await Promise.all([cargarEstudiantes(idMateria), cargarTareasDeMateria(idMateria)]);
@@ -313,57 +399,150 @@
                 }).join('')
                 : 'Todavía no hay estudiantes matriculados en esta materia.';
 
-            const opciones = '<option value="">Selecciona un estudiante…</option>' +
+            document.getElementById('nEstudiante').innerHTML = '<option value="">Selecciona un estudiante…</option>' +
                 estudiantesCache.map(function (u) {
                     return '<option value="' + u.idUsuario + '">' + escapeHtml(u.nombre) + '</option>';
                 }).join('');
-            document.getElementById('tEstudiante').innerHTML = opciones;
-            document.getElementById('nEstudiante').innerHTML = opciones;
+
+            document.getElementById('tTodos').checked = false;
+            document.getElementById('tEstudiantesCheckboxes').innerHTML = estudiantesCache.length
+                ? estudiantesCache.map(function (u) {
+                    return '<label class="checkbox-item"><input type="checkbox" class="t-estudiante-check" value="' + u.idUsuario + '" onchange="onCheckIndividualEstudiante()"> ' + escapeHtml(u.nombre) + '</label>';
+                }).join('')
+                : '<div style="font-size:12.5px;color:var(--muted);">No hay estudiantes matriculados.</div>';
         } catch (e) {
             box.innerHTML = '<span style="color:var(--alert);">No se pudieron cargar los estudiantes.</span>';
         }
     }
 
-    // ---------- Tareas de la materia (para el selector de avisos) ----------
+    function toggleTodosEstudiantes(checkbox) {
+        document.querySelectorAll('.t-estudiante-check').forEach(function (c) { c.checked = checkbox.checked; });
+    }
+
+    function onCheckIndividualEstudiante() {
+        const boxes = document.querySelectorAll('.t-estudiante-check');
+        document.getElementById('tTodos').checked = boxes.length > 0 && Array.from(boxes).every(function (c) { return c.checked; });
+    }
+
+    // ---------- Tareas de la materia (selector de avisos + lista editable) ----------
     async function cargarTareasDeMateria(idMateria) {
         const select = document.getElementById('aTarea');
+        const listaBox = document.getElementById('tareasListaBox');
         select.innerHTML = '<option value="">Cargando tareas…</option>';
+        listaBox.innerHTML = '<div class="loading-note">Cargando tareas…</div>';
         try {
             const resp = await fetch('https://localhost:8443/api/profesor/materias/' + idMateria + '/tareas', { headers: headers() });
             if (manejarSesionInvalida(resp.status)) return;
             if (!resp.ok) throw new Error();
             tareasCache = await resp.json();
 
-            if (!tareasCache.length) {
-                select.innerHTML = '<option value="">No hay tareas en esta materia todavía</option>';
-                return;
-            }
-            select.innerHTML = '<option value="">Selecciona una tarea…</option>' +
-                tareasCache.map(function (t) {
+            select.innerHTML = tareasCache.length
+                ? '<option value="">Selecciona una tarea…</option>' + tareasCache.map(function (t) {
                     const estudianteNombre = t.usuario ? t.usuario.nombre : '—';
                     return '<option value="' + t.idTarea + '">' + escapeHtml(t.titulo) + ' — ' + escapeHtml(estudianteNombre) + '</option>';
-                }).join('');
+                }).join('')
+                : '<option value="">No hay tareas en esta materia todavía</option>';
+
+            renderizarListaTareas();
         } catch (e) {
             select.innerHTML = '<option value="">No se pudieron cargar las tareas</option>';
+            listaBox.innerHTML = '<div class="error-note">No se pudieron cargar las tareas.</div>';
         }
     }
 
-    // ---------- Crear tarea ----------
-    async function crearTarea(evento) {
-        evento.preventDefault();
-        const idUsuario = document.getElementById('tEstudiante').value;
-        if (!materiaSeleccionada || !idUsuario) return false;
+    function renderizarListaTareas() {
+        const box = document.getElementById('tareasListaBox');
+        if (!tareasCache.length) {
+            box.innerHTML = '<div class="empty-note">Todavía no hay tareas publicadas en esta materia.</div>';
+            return;
+        }
+        box.innerHTML = tareasCache.map(function (t) {
+            const estudianteNombre = t.usuario ? t.usuario.nombre : '—';
+            const hora = (t.horaLimite || '23:59:59').slice(0, 5);
+            return '' +
+            '<div class="tarea-row">' +
+                '<div class="tarea-row-main">' +
+                    '<div class="tarea-codigo">' + escapeHtml(t.codigo || ('TAR-' + t.idTarea)) + '</div>' +
+                    '<div class="tarea-titulo">' + escapeHtml(t.titulo) + '</div>' +
+                    '<div class="tarea-meta">' + escapeHtml(estudianteNombre) + ' · entrega ' + escapeHtml(t.fechaEntrega) + ' · ' + hora + '</div>' +
+                '</div>' +
+                '<button type="button" class="tarea-edit-btn" title="Editar" onclick="abrirModalEditar(' + t.idTarea + ')">' +
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' +
+                '</button>' +
+            '</div>';
+        }).join('');
+    }
 
+    function abrirModalEditar(idTarea) {
+        const t = tareasCache.find(function (x) { return x.idTarea === idTarea; });
+        if (!t) return;
+        document.getElementById('msgEditarTarea').className = 'form-msg';
+        document.getElementById('eTareaId').value = t.idTarea;
+        document.getElementById('eTitulo').value = t.titulo;
+        document.getElementById('eDescripcion').value = t.descripcion || '';
+        document.getElementById('eFecha').value = t.fechaEntrega;
+        document.getElementById('eHora').value = (t.horaLimite || '23:59:59').slice(0, 5);
+        document.getElementById('modalEditarOverlay').classList.add('open');
+    }
+
+    function cerrarModalEditar() {
+        document.getElementById('modalEditarOverlay').classList.remove('open');
+    }
+
+    async function guardarEdicionTarea(evento) {
+        evento.preventDefault();
+        const idTarea = document.getElementById('eTareaId').value;
         const body = {
-            idMateria: materiaSeleccionada,
-            idUsuario: parseInt(idUsuario, 10),
-            titulo: document.getElementById('tTitulo').value.trim(),
-            descripcion: document.getElementById('tDescripcion').value.trim(),
-            fechaEntrega: document.getElementById('tFecha').value
+            titulo: document.getElementById('eTitulo').value.trim(),
+            descripcion: document.getElementById('eDescripcion').value.trim(),
+            fechaEntrega: document.getElementById('eFecha').value,
+            horaLimite: document.getElementById('eHora').value
         };
 
         try {
-            const resp = await fetch('https://localhost:8443/api/profesor/tareas', {
+            const resp = await fetch('https://localhost:8443/api/profesor/tareas/' + idTarea, {
+                method: 'PUT',
+                headers: Object.assign({ 'Content-Type': 'application/json' }, headers()),
+                body: JSON.stringify(body)
+            });
+            if (manejarSesionInvalida(resp.status)) return false;
+            const datos = await resp.json().catch(function () { return null; });
+            if (!resp.ok) throw new Error(datos && datos.detail ? datos.detail : 'No se pudo editar la tarea.');
+
+            cerrarModalEditar();
+            await cargarTareasDeMateria(materiaSeleccionada);
+        } catch (e) {
+            const box = document.getElementById('msgEditarTarea');
+            box.textContent = e.message;
+            box.className = 'form-msg show error';
+        }
+        return false;
+    }
+
+    // ---------- Crear tarea (para uno o varios estudiantes a la vez) ----------
+    async function crearTarea(evento) {
+        evento.preventDefault();
+        if (!materiaSeleccionada) return false;
+
+        const idsUsuario = Array.from(document.querySelectorAll('.t-estudiante-check:checked'))
+            .map(function (c) { return parseInt(c.value, 10); });
+        if (!idsUsuario.length) {
+            mostrarMensaje('msgTarea', 'Selecciona al menos un estudiante.', 'error');
+            return false;
+        }
+
+        const horaValor = document.getElementById('tHora').value;
+        const body = {
+            idMateria: materiaSeleccionada,
+            idsUsuario: idsUsuario,
+            titulo: document.getElementById('tTitulo').value.trim(),
+            descripcion: document.getElementById('tDescripcion').value.trim(),
+            fechaEntrega: document.getElementById('tFecha').value,
+            horaLimite: horaValor || null
+        };
+
+        try {
+            const resp = await fetch('https://localhost:8443/api/profesor/tareas/masiva', {
                 method: 'POST',
                 headers: Object.assign({ 'Content-Type': 'application/json' }, headers()),
                 body: JSON.stringify(body)
@@ -371,11 +550,13 @@
             const datos = await resp.json().catch(function () { return null; });
             if (!resp.ok) throw new Error(datos && datos.detail ? datos.detail : 'No se pudo crear la tarea.');
 
-            mostrarMensaje('msgTarea', 'Tarea creada (' + (datos.codigo || 'sin código') + ').', 'success');
+            mostrarMensaje('msgTarea', 'Tarea creada para ' + datos.length + ' estudiante(s).', 'success');
             document.getElementById('tTitulo').value = '';
             document.getElementById('tDescripcion').value = '';
             document.getElementById('tFecha').value = '';
-            document.getElementById('tEstudiante').value = '';
+            document.getElementById('tHora').value = '';
+            document.getElementById('tTodos').checked = false;
+            document.querySelectorAll('.t-estudiante-check').forEach(function (c) { c.checked = false; });
             await cargarTareasDeMateria(materiaSeleccionada);
         } catch (e) {
             mostrarMensaje('msgTarea', e.message, 'error');

@@ -11,12 +11,15 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.net.URI;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -36,14 +39,18 @@ import java.util.stream.Collectors;
  * tarea de un estudiante a otro. avisos.id_tarea sigue NOT NULL -- no
  * hay anuncios generales sueltos, a proposito, no se toco ese esquema.
  *
- * Alcance de &quot;crear tareas&quot;: una tarea = un estudiante (opcion &quot;a&quot;
- * decidida explicitamente). La asignacion masiva a toda la materia de
- * una sola llamada queda anotada como mejora futura, no implementada.
+ * Alcance de &quot;crear tareas&quot;: cada Tarea sigue siendo de UN estudiante
+ * (no existe un concepto de &quot;tarea compartida&quot; en el esquema). Hay dos
+ * formas de crearlas: una por una (POST /tareas) o en bloque para varios
+ * estudiantes a la vez (POST /tareas/masiva), que por dentro simplemente
+ * repite la misma creacion -- mismo titulo/descripcion/fecha/hora, un
+ * codigo de seguimiento independiente por estudiante (via
+ * sp_generar_codigo_tarea, igual que la creacion individual).
  */
 @RestController
 @RequestMapping(&quot;/api/profesor&quot;)
 @CrossOrigin(origins = {&quot;http://localhost:8080&quot;, &quot;http://localhost&quot;})
-<span class="fc" id="L46">public class ProfesorController {</span>
+<span class="fc" id="L53">public class ProfesorController {</span>
 
     @Autowired
     private UsuarioService usuarioService;
@@ -66,13 +73,19 @@ import java.util.stream.Collectors;
     @Autowired
     private UsuarioRepository usuarioRepository;
 
-<span class="nc" id="L69">    public record CrearTareaRequest(Integer idMateria, Integer idUsuario, String titulo, String descripcion, LocalDate fechaEntrega) {</span>
+<span class="nc" id="L76">    public record CrearTareaRequest(Integer idMateria, Integer idUsuario, String titulo, String descripcion, LocalDate fechaEntrega) {</span>
     }
 
-<span class="nc" id="L72">    public record CrearAvisoRequest(Integer idTarea, String mensaje) {</span>
+<span class="nc" id="L79">    public record CrearTareaMasivaRequest(Integer idMateria, List&lt;Integer&gt; idsUsuario, String titulo, String descripcion, LocalDate fechaEntrega, LocalTime horaLimite) {</span>
     }
 
-<span class="nc" id="L75">    public record CrearCalificacionRequest(Integer idMateria, Integer idUsuario, BigDecimal nota) {</span>
+<span class="nc" id="L82">    public record ActualizarTareaRequest(String titulo, String descripcion, LocalDate fechaEntrega, LocalTime horaLimite) {</span>
+    }
+
+<span class="nc" id="L85">    public record CrearAvisoRequest(Integer idTarea, String mensaje) {</span>
+    }
+
+<span class="nc" id="L88">    public record CrearCalificacionRequest(Integer idMateria, Integer idUsuario, BigDecimal nota) {</span>
     }
 
     /**
@@ -83,8 +96,8 @@ import java.util.stream.Collectors;
     @PreAuthorize(&quot;hasRole('PROFESOR')&quot;)
     @GetMapping(&quot;/materias&quot;)
     public ResponseEntity&lt;List&lt;Materia&gt;&gt; misMaterias(Authentication authentication) {
-<span class="nc" id="L86">        Usuario profesor = resolverProfesor(authentication);</span>
-<span class="nc" id="L87">        return ResponseEntity.ok(materiaRepository.findByProfesor_IdUsuario(profesor.getIdUsuario()));</span>
+<span class="nc" id="L99">        Usuario profesor = resolverProfesor(authentication);</span>
+<span class="nc" id="L100">        return ResponseEntity.ok(materiaRepository.findByProfesor_IdUsuario(profesor.getIdUsuario()));</span>
     }
 
     /**
@@ -95,15 +108,15 @@ import java.util.stream.Collectors;
     @PreAuthorize(&quot;hasRole('PROFESOR')&quot;)
     @GetMapping(&quot;/materias/{idMateria}/estudiantes&quot;)
     public ResponseEntity&lt;?&gt; misEstudiantes(Authentication authentication, HttpServletRequest request, @PathVariable Integer idMateria) {
-<span class="nc" id="L98">        Usuario profesor = resolverProfesor(authentication);</span>
-<span class="nc" id="L99">        Optional&lt;Materia&gt; materiaOpt = validarMateriaPropia(idMateria, profesor);</span>
-<span class="nc bnc" id="L100" title="All 2 branches missed.">        if (materiaOpt.isEmpty()) {</span>
-<span class="nc" id="L101">            return errorMateriaNoPropia(request, idMateria);</span>
+<span class="nc" id="L111">        Usuario profesor = resolverProfesor(authentication);</span>
+<span class="nc" id="L112">        Optional&lt;Materia&gt; materiaOpt = validarMateriaPropia(idMateria, profesor);</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">        if (materiaOpt.isEmpty()) {</span>
+<span class="nc" id="L114">            return errorMateriaNoPropia(request, idMateria);</span>
         }
-<span class="nc" id="L103">        List&lt;Usuario&gt; estudiantes = matriculaRepository.findByMateria_IdMateria(idMateria).stream()</span>
-<span class="nc" id="L104">                .map(Matricula::getUsuario)</span>
-<span class="nc" id="L105">                .collect(Collectors.toList());</span>
-<span class="nc" id="L106">        return ResponseEntity.ok(estudiantes);</span>
+<span class="nc" id="L116">        List&lt;Usuario&gt; estudiantes = matriculaRepository.findByMateria_IdMateria(idMateria).stream()</span>
+<span class="nc" id="L117">                .map(Matricula::getUsuario)</span>
+<span class="nc" id="L118">                .collect(Collectors.toList());</span>
+<span class="nc" id="L119">        return ResponseEntity.ok(estudiantes);</span>
     }
 
     /**
@@ -115,12 +128,12 @@ import java.util.stream.Collectors;
     @PreAuthorize(&quot;hasRole('PROFESOR')&quot;)
     @GetMapping(&quot;/materias/{idMateria}/tareas&quot;)
     public ResponseEntity&lt;?&gt; misTareasDeMateria(Authentication authentication, HttpServletRequest request, @PathVariable Integer idMateria) {
-<span class="nc" id="L118">        Usuario profesor = resolverProfesor(authentication);</span>
-<span class="nc" id="L119">        Optional&lt;Materia&gt; materiaOpt = validarMateriaPropia(idMateria, profesor);</span>
-<span class="nc bnc" id="L120" title="All 2 branches missed.">        if (materiaOpt.isEmpty()) {</span>
-<span class="nc" id="L121">            return errorMateriaNoPropia(request, idMateria);</span>
+<span class="nc" id="L131">        Usuario profesor = resolverProfesor(authentication);</span>
+<span class="nc" id="L132">        Optional&lt;Materia&gt; materiaOpt = validarMateriaPropia(idMateria, profesor);</span>
+<span class="nc bnc" id="L133" title="All 2 branches missed.">        if (materiaOpt.isEmpty()) {</span>
+<span class="nc" id="L134">            return errorMateriaNoPropia(request, idMateria);</span>
         }
-<span class="nc" id="L123">        return ResponseEntity.ok(tareaRepository.findByMateria_IdMateria(idMateria));</span>
+<span class="nc" id="L136">        return ResponseEntity.ok(tareaRepository.findByMateria_IdMateria(idMateria));</span>
     }
 
     /**
@@ -131,29 +144,119 @@ import java.util.stream.Collectors;
     @PreAuthorize(&quot;hasRole('PROFESOR')&quot;)
     @PostMapping(&quot;/tareas&quot;)
     public ResponseEntity&lt;?&gt; crearTarea(Authentication authentication, HttpServletRequest request, @RequestBody CrearTareaRequest datos) {
-<span class="nc" id="L134">        Usuario profesor = resolverProfesor(authentication);</span>
-<span class="nc" id="L135">        Optional&lt;Materia&gt; materiaOpt = validarMateriaPropia(datos.idMateria(), profesor);</span>
-<span class="nc bnc" id="L136" title="All 2 branches missed.">        if (materiaOpt.isEmpty()) {</span>
-<span class="nc" id="L137">            return errorMateriaNoPropia(request, datos.idMateria());</span>
+<span class="nc" id="L147">        Usuario profesor = resolverProfesor(authentication);</span>
+<span class="nc" id="L148">        Optional&lt;Materia&gt; materiaOpt = validarMateriaPropia(datos.idMateria(), profesor);</span>
+<span class="nc bnc" id="L149" title="All 2 branches missed.">        if (materiaOpt.isEmpty()) {</span>
+<span class="nc" id="L150">            return errorMateriaNoPropia(request, datos.idMateria());</span>
         }
 
-<span class="nc" id="L140">        Optional&lt;Usuario&gt; estudianteOpt = usuarioRepository.findById(datos.idUsuario());</span>
-<span class="nc bnc" id="L141" title="All 2 branches missed.">        if (estudianteOpt.isEmpty()) {</span>
-<span class="nc" id="L142">            return errorEstudianteNoEncontrado(request, datos.idUsuario());</span>
+<span class="nc" id="L153">        Optional&lt;Usuario&gt; estudianteOpt = usuarioRepository.findById(datos.idUsuario());</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">        if (estudianteOpt.isEmpty()) {</span>
+<span class="nc" id="L155">            return errorEstudianteNoEncontrado(request, datos.idUsuario());</span>
         }
-<span class="nc bnc" id="L144" title="All 2 branches missed.">        if (!matriculaRepository.existsByUsuario_IdUsuarioAndMateria_IdMateria(datos.idUsuario(), datos.idMateria())) {</span>
-<span class="nc" id="L145">            return errorEstudianteNoMatriculado(request, datos.idUsuario(), datos.idMateria());</span>
+<span class="nc bnc" id="L157" title="All 2 branches missed.">        if (!matriculaRepository.existsByUsuario_IdUsuarioAndMateria_IdMateria(datos.idUsuario(), datos.idMateria())) {</span>
+<span class="nc" id="L158">            return errorEstudianteNoMatriculado(request, datos.idUsuario(), datos.idMateria());</span>
         }
 
-<span class="nc" id="L148">        Tarea tarea = new Tarea();</span>
-<span class="nc" id="L149">        tarea.setMateria(materiaOpt.get());</span>
-<span class="nc" id="L150">        tarea.setUsuario(estudianteOpt.get());</span>
-<span class="nc" id="L151">        tarea.setTitulo(datos.titulo());</span>
-<span class="nc" id="L152">        tarea.setDescripcion(datos.descripcion());</span>
-<span class="nc" id="L153">        tarea.setFechaEntrega(datos.fechaEntrega());</span>
-<span class="nc" id="L154">        tarea.setCodigo(tareaRepository.spGenerarCodigoTarea());</span>
+<span class="nc" id="L161">        Tarea tarea = new Tarea();</span>
+<span class="nc" id="L162">        tarea.setMateria(materiaOpt.get());</span>
+<span class="nc" id="L163">        tarea.setUsuario(estudianteOpt.get());</span>
+<span class="nc" id="L164">        tarea.setTitulo(datos.titulo());</span>
+<span class="nc" id="L165">        tarea.setDescripcion(datos.descripcion());</span>
+<span class="nc" id="L166">        tarea.setFechaEntrega(datos.fechaEntrega());</span>
+<span class="nc" id="L167">        tarea.setCodigo(tareaRepository.spGenerarCodigoTarea());</span>
 
-<span class="nc" id="L156">        return ResponseEntity.ok(tareaRepository.save(tarea));</span>
+<span class="nc" id="L169">        return ResponseEntity.ok(tareaRepository.save(tarea));</span>
+    }
+
+    /**
+     * Crea la MISMA tarea (titulo/descripcion/fecha/hora) para varios
+     * estudiantes matriculados en una materia propia de una sola llamada.
+     * No es una tarea &quot;compartida&quot;: se guarda una fila independiente por
+     * estudiante, cada una con su propio codigo de seguimiento -- son
+     * indistinguibles de tareas creadas una por una con POST /tareas.
+     *
+     * Validacion en dos pasadas: primero se valida que CADA idUsuario
+     * exista y este matriculado (sin escribir nada todavia); si alguno
+     * falla, se aborta la llamada completa con 404/403 y no se crea
+     * ninguna tarea -- evita el caso confuso de &quot;se crearon 3 de 5 y las
+     * otras 2 fallaron&quot;. @Transactional refuerza esto: si algo fallara
+     * durante la segunda pasada (guardado), se revierte todo.
+     */
+    @PreAuthorize(&quot;hasRole('PROFESOR')&quot;)
+    @Transactional
+    @PostMapping(&quot;/tareas/masiva&quot;)
+    public ResponseEntity&lt;?&gt; crearTareaMasiva(Authentication authentication, HttpServletRequest request, @RequestBody CrearTareaMasivaRequest datos) {
+<span class="nc" id="L190">        Usuario profesor = resolverProfesor(authentication);</span>
+<span class="nc" id="L191">        Optional&lt;Materia&gt; materiaOpt = validarMateriaPropia(datos.idMateria(), profesor);</span>
+<span class="nc bnc" id="L192" title="All 2 branches missed.">        if (materiaOpt.isEmpty()) {</span>
+<span class="nc" id="L193">            return errorMateriaNoPropia(request, datos.idMateria());</span>
+        }
+
+<span class="nc bnc" id="L196" title="All 4 branches missed.">        if (datos.idsUsuario() == null || datos.idsUsuario().isEmpty()) {</span>
+<span class="nc" id="L197">            return errorSinEstudiantesSeleccionados(request);</span>
+        }
+
+<span class="nc" id="L200">        List&lt;Usuario&gt; estudiantes = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L201" title="All 2 branches missed.">        for (Integer idUsuario : datos.idsUsuario()) {</span>
+<span class="nc" id="L202">            Optional&lt;Usuario&gt; estudianteOpt = usuarioRepository.findById(idUsuario);</span>
+<span class="nc bnc" id="L203" title="All 2 branches missed.">            if (estudianteOpt.isEmpty()) {</span>
+<span class="nc" id="L204">                return errorEstudianteNoEncontrado(request, idUsuario);</span>
+            }
+<span class="nc bnc" id="L206" title="All 2 branches missed.">            if (!matriculaRepository.existsByUsuario_IdUsuarioAndMateria_IdMateria(idUsuario, datos.idMateria())) {</span>
+<span class="nc" id="L207">                return errorEstudianteNoMatriculado(request, idUsuario, datos.idMateria());</span>
+            }
+<span class="nc" id="L209">            estudiantes.add(estudianteOpt.get());</span>
+<span class="nc" id="L210">        }</span>
+
+<span class="nc" id="L212">        List&lt;Tarea&gt; creadas = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L213" title="All 2 branches missed.">        for (Usuario estudiante : estudiantes) {</span>
+<span class="nc" id="L214">            Tarea tarea = new Tarea();</span>
+<span class="nc" id="L215">            tarea.setMateria(materiaOpt.get());</span>
+<span class="nc" id="L216">            tarea.setUsuario(estudiante);</span>
+<span class="nc" id="L217">            tarea.setTitulo(datos.titulo());</span>
+<span class="nc" id="L218">            tarea.setDescripcion(datos.descripcion());</span>
+<span class="nc" id="L219">            tarea.setFechaEntrega(datos.fechaEntrega());</span>
+<span class="nc bnc" id="L220" title="All 2 branches missed.">            if (datos.horaLimite() != null) {</span>
+<span class="nc" id="L221">                tarea.setHoraLimite(datos.horaLimite());</span>
+            }
+<span class="nc" id="L223">            tarea.setCodigo(tareaRepository.spGenerarCodigoTarea());</span>
+<span class="nc" id="L224">            creadas.add(tareaRepository.save(tarea));</span>
+<span class="nc" id="L225">        }</span>
+
+<span class="nc" id="L227">        return ResponseEntity.ok(creadas);</span>
+    }
+
+    /**
+     * Edita titulo, descripcion, fecha y hora limite de una tarea ya
+     * publicada. La pertenencia se valida por la materia de LA TAREA (no
+     * por un idMateria del body, que no existe aca), igual que en
+     * crearAviso: 403 si la materia de la tarea no es del profesor
+     * autenticado (no 404, para no confirmar que la tarea existe si no
+     * es suya).
+     */
+    @PreAuthorize(&quot;hasRole('PROFESOR')&quot;)
+    @PutMapping(&quot;/tareas/{id}&quot;)
+    public ResponseEntity&lt;?&gt; actualizarTarea(Authentication authentication, HttpServletRequest request, @PathVariable Integer id, @RequestBody ActualizarTareaRequest datos) {
+<span class="nc" id="L241">        Usuario profesor = resolverProfesor(authentication);</span>
+
+<span class="nc" id="L243">        Optional&lt;Tarea&gt; tareaOpt = tareaRepository.findById(id);</span>
+<span class="nc bnc" id="L244" title="All 2 branches missed.">        if (tareaOpt.isEmpty()) {</span>
+<span class="nc" id="L245">            return errorTareaNoEncontrada(request, id);</span>
+        }
+
+<span class="nc" id="L248">        Tarea tarea = tareaOpt.get();</span>
+<span class="nc" id="L249">        Integer idMateriaDeLaTarea = tarea.getMateria().getIdMateria();</span>
+<span class="nc bnc" id="L250" title="All 2 branches missed.">        if (validarMateriaPropia(idMateriaDeLaTarea, profesor).isEmpty()) {</span>
+<span class="nc" id="L251">            return errorMateriaNoPropia(request, idMateriaDeLaTarea);</span>
+        }
+
+<span class="nc" id="L254">        tarea.setTitulo(datos.titulo());</span>
+<span class="nc" id="L255">        tarea.setDescripcion(datos.descripcion());</span>
+<span class="nc" id="L256">        tarea.setFechaEntrega(datos.fechaEntrega());</span>
+<span class="nc" id="L257">        tarea.setHoraLimite(datos.horaLimite());</span>
+
+<span class="nc" id="L259">        return ResponseEntity.ok(tareaRepository.save(tarea));</span>
     }
 
     /**
@@ -165,32 +268,32 @@ import java.util.stream.Collectors;
     @PreAuthorize(&quot;hasRole('PROFESOR')&quot;)
     @PostMapping(&quot;/avisos&quot;)
     public ResponseEntity&lt;?&gt; crearAviso(Authentication authentication, HttpServletRequest request, @RequestBody CrearAvisoRequest datos) {
-<span class="nc" id="L168">        Usuario profesor = resolverProfesor(authentication);</span>
+<span class="nc" id="L271">        Usuario profesor = resolverProfesor(authentication);</span>
 
-<span class="nc" id="L170">        Optional&lt;Tarea&gt; tareaOpt = tareaRepository.findById(datos.idTarea());</span>
-<span class="nc bnc" id="L171" title="All 2 branches missed.">        if (tareaOpt.isEmpty()) {</span>
-<span class="nc" id="L172">            ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
-<span class="nc" id="L173">                    HttpStatus.NOT_FOUND, &quot;No existe una tarea con id &quot; + datos.idTarea() + &quot;.&quot;);</span>
-<span class="nc" id="L174">            problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/tarea-no-encontrada&quot;));</span>
-<span class="nc" id="L175">            problema.setTitle(&quot;Tarea no encontrada&quot;);</span>
-<span class="nc" id="L176">            problema.setInstance(URI.create(request.getRequestURI()));</span>
-<span class="nc" id="L177">            return ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
+<span class="nc" id="L273">        Optional&lt;Tarea&gt; tareaOpt = tareaRepository.findById(datos.idTarea());</span>
+<span class="nc bnc" id="L274" title="All 2 branches missed.">        if (tareaOpt.isEmpty()) {</span>
+<span class="nc" id="L275">            ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+<span class="nc" id="L276">                    HttpStatus.NOT_FOUND, &quot;No existe una tarea con id &quot; + datos.idTarea() + &quot;.&quot;);</span>
+<span class="nc" id="L277">            problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/tarea-no-encontrada&quot;));</span>
+<span class="nc" id="L278">            problema.setTitle(&quot;Tarea no encontrada&quot;);</span>
+<span class="nc" id="L279">            problema.setInstance(URI.create(request.getRequestURI()));</span>
+<span class="nc" id="L280">            return ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
         }
 
-<span class="nc" id="L180">        Tarea tarea = tareaOpt.get();</span>
-<span class="nc" id="L181">        Integer idMateriaDeLaTarea = tarea.getMateria().getIdMateria();</span>
-<span class="nc bnc" id="L182" title="All 2 branches missed.">        if (validarMateriaPropia(idMateriaDeLaTarea, profesor).isEmpty()) {</span>
-<span class="nc" id="L183">            return errorMateriaNoPropia(request, idMateriaDeLaTarea);</span>
+<span class="nc" id="L283">        Tarea tarea = tareaOpt.get();</span>
+<span class="nc" id="L284">        Integer idMateriaDeLaTarea = tarea.getMateria().getIdMateria();</span>
+<span class="nc bnc" id="L285" title="All 2 branches missed.">        if (validarMateriaPropia(idMateriaDeLaTarea, profesor).isEmpty()) {</span>
+<span class="nc" id="L286">            return errorMateriaNoPropia(request, idMateriaDeLaTarea);</span>
         }
 
-<span class="nc" id="L186">        Aviso aviso = new Aviso();</span>
-<span class="nc" id="L187">        aviso.setTarea(tarea);</span>
-<span class="nc" id="L188">        aviso.setUsuario(tarea.getUsuario());</span>
-<span class="nc" id="L189">        aviso.setMensaje(datos.mensaje());</span>
-<span class="nc" id="L190">        aviso.setLeido(false);</span>
-<span class="nc" id="L191">        aviso.setFechaGeneracion(LocalDateTime.now());</span>
+<span class="nc" id="L289">        Aviso aviso = new Aviso();</span>
+<span class="nc" id="L290">        aviso.setTarea(tarea);</span>
+<span class="nc" id="L291">        aviso.setUsuario(tarea.getUsuario());</span>
+<span class="nc" id="L292">        aviso.setMensaje(datos.mensaje());</span>
+<span class="nc" id="L293">        aviso.setLeido(false);</span>
+<span class="nc" id="L294">        aviso.setFechaGeneracion(LocalDateTime.now());</span>
 
-<span class="nc" id="L193">        return ResponseEntity.ok(avisoRepository.save(aviso));</span>
+<span class="nc" id="L296">        return ResponseEntity.ok(avisoRepository.save(aviso));</span>
     }
 
     /**
@@ -200,65 +303,83 @@ import java.util.stream.Collectors;
     @PreAuthorize(&quot;hasRole('PROFESOR')&quot;)
     @PostMapping(&quot;/calificaciones&quot;)
     public ResponseEntity&lt;?&gt; crearCalificacion(Authentication authentication, HttpServletRequest request, @RequestBody CrearCalificacionRequest datos) {
-<span class="nc" id="L203">        Usuario profesor = resolverProfesor(authentication);</span>
-<span class="nc" id="L204">        Optional&lt;Materia&gt; materiaOpt = validarMateriaPropia(datos.idMateria(), profesor);</span>
-<span class="nc bnc" id="L205" title="All 2 branches missed.">        if (materiaOpt.isEmpty()) {</span>
-<span class="nc" id="L206">            return errorMateriaNoPropia(request, datos.idMateria());</span>
+<span class="nc" id="L306">        Usuario profesor = resolverProfesor(authentication);</span>
+<span class="nc" id="L307">        Optional&lt;Materia&gt; materiaOpt = validarMateriaPropia(datos.idMateria(), profesor);</span>
+<span class="nc bnc" id="L308" title="All 2 branches missed.">        if (materiaOpt.isEmpty()) {</span>
+<span class="nc" id="L309">            return errorMateriaNoPropia(request, datos.idMateria());</span>
         }
 
-<span class="nc" id="L209">        Optional&lt;Usuario&gt; estudianteOpt = usuarioRepository.findById(datos.idUsuario());</span>
-<span class="nc bnc" id="L210" title="All 2 branches missed.">        if (estudianteOpt.isEmpty()) {</span>
-<span class="nc" id="L211">            return errorEstudianteNoEncontrado(request, datos.idUsuario());</span>
+<span class="nc" id="L312">        Optional&lt;Usuario&gt; estudianteOpt = usuarioRepository.findById(datos.idUsuario());</span>
+<span class="nc bnc" id="L313" title="All 2 branches missed.">        if (estudianteOpt.isEmpty()) {</span>
+<span class="nc" id="L314">            return errorEstudianteNoEncontrado(request, datos.idUsuario());</span>
         }
-<span class="nc bnc" id="L213" title="All 2 branches missed.">        if (!matriculaRepository.existsByUsuario_IdUsuarioAndMateria_IdMateria(datos.idUsuario(), datos.idMateria())) {</span>
-<span class="nc" id="L214">            return errorEstudianteNoMatriculado(request, datos.idUsuario(), datos.idMateria());</span>
+<span class="nc bnc" id="L316" title="All 2 branches missed.">        if (!matriculaRepository.existsByUsuario_IdUsuarioAndMateria_IdMateria(datos.idUsuario(), datos.idMateria())) {</span>
+<span class="nc" id="L317">            return errorEstudianteNoMatriculado(request, datos.idUsuario(), datos.idMateria());</span>
         }
 
-<span class="nc" id="L217">        Calificacion calificacion = new Calificacion();</span>
-<span class="nc" id="L218">        calificacion.setUsuario(estudianteOpt.get());</span>
-<span class="nc" id="L219">        calificacion.setMateria(materiaOpt.get());</span>
-<span class="nc" id="L220">        calificacion.setNota(datos.nota());</span>
+<span class="nc" id="L320">        Calificacion calificacion = new Calificacion();</span>
+<span class="nc" id="L321">        calificacion.setUsuario(estudianteOpt.get());</span>
+<span class="nc" id="L322">        calificacion.setMateria(materiaOpt.get());</span>
+<span class="nc" id="L323">        calificacion.setNota(datos.nota());</span>
 
-<span class="nc" id="L222">        return ResponseEntity.ok(calificacionRepository.save(calificacion));</span>
+<span class="nc" id="L325">        return ResponseEntity.ok(calificacionRepository.save(calificacion));</span>
     }
 
     // ---- helpers ----
 
     private Usuario resolverProfesor(Authentication authentication) {
-<span class="nc" id="L228">        return usuarioService.buscarPorEmail(authentication.getName())</span>
-<span class="nc" id="L229">                .orElseThrow(() -&gt; new IllegalStateException(&quot;Usuario del token no existe&quot;));</span>
+<span class="nc" id="L331">        return usuarioService.buscarPorEmail(authentication.getName())</span>
+<span class="nc" id="L332">                .orElseThrow(() -&gt; new IllegalStateException(&quot;Usuario del token no existe&quot;));</span>
     }
 
     private Optional&lt;Materia&gt; validarMateriaPropia(Integer idMateria, Usuario profesor) {
-<span class="nc" id="L233">        return materiaRepository.findById(idMateria)</span>
-<span class="nc bnc" id="L234" title="All 4 branches missed.">                .filter(m -&gt; m.getProfesor() != null &amp;&amp; m.getProfesor().getIdUsuario().equals(profesor.getIdUsuario()));</span>
+<span class="nc" id="L336">        return materiaRepository.findById(idMateria)</span>
+<span class="nc bnc" id="L337" title="All 4 branches missed.">                .filter(m -&gt; m.getProfesor() != null &amp;&amp; m.getProfesor().getIdUsuario().equals(profesor.getIdUsuario()));</span>
     }
 
     private ResponseEntity&lt;ProblemDetail&gt; errorMateriaNoPropia(HttpServletRequest request, Integer idMateria) {
-<span class="nc" id="L238">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+<span class="nc" id="L341">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
                 HttpStatus.FORBIDDEN, &quot;La materia &quot; + idMateria + &quot; no existe o no la dictas.&quot;);
-<span class="nc" id="L240">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/materia-no-propia&quot;));</span>
-<span class="nc" id="L241">        problema.setTitle(&quot;Acceso prohibido&quot;);</span>
-<span class="nc" id="L242">        problema.setInstance(URI.create(request.getRequestURI()));</span>
-<span class="nc" id="L243">        return ResponseEntity.status(HttpStatus.FORBIDDEN).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
+<span class="nc" id="L343">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/materia-no-propia&quot;));</span>
+<span class="nc" id="L344">        problema.setTitle(&quot;Acceso prohibido&quot;);</span>
+<span class="nc" id="L345">        problema.setInstance(URI.create(request.getRequestURI()));</span>
+<span class="nc" id="L346">        return ResponseEntity.status(HttpStatus.FORBIDDEN).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
+    }
+
+    private ResponseEntity&lt;ProblemDetail&gt; errorTareaNoEncontrada(HttpServletRequest request, Integer idTarea) {
+<span class="nc" id="L350">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+                HttpStatus.NOT_FOUND, &quot;No existe una tarea con id &quot; + idTarea + &quot;.&quot;);
+<span class="nc" id="L352">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/tarea-no-encontrada&quot;));</span>
+<span class="nc" id="L353">        problema.setTitle(&quot;Tarea no encontrada&quot;);</span>
+<span class="nc" id="L354">        problema.setInstance(URI.create(request.getRequestURI()));</span>
+<span class="nc" id="L355">        return ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
     }
 
     private ResponseEntity&lt;ProblemDetail&gt; errorEstudianteNoEncontrado(HttpServletRequest request, Integer idUsuario) {
-<span class="nc" id="L247">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+<span class="nc" id="L359">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
                 HttpStatus.NOT_FOUND, &quot;No existe un usuario con id &quot; + idUsuario + &quot;.&quot;);
-<span class="nc" id="L249">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/usuario-no-encontrado&quot;));</span>
-<span class="nc" id="L250">        problema.setTitle(&quot;Usuario no encontrado&quot;);</span>
-<span class="nc" id="L251">        problema.setInstance(URI.create(request.getRequestURI()));</span>
-<span class="nc" id="L252">        return ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
+<span class="nc" id="L361">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/usuario-no-encontrado&quot;));</span>
+<span class="nc" id="L362">        problema.setTitle(&quot;Usuario no encontrado&quot;);</span>
+<span class="nc" id="L363">        problema.setInstance(URI.create(request.getRequestURI()));</span>
+<span class="nc" id="L364">        return ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
+    }
+
+    private ResponseEntity&lt;ProblemDetail&gt; errorSinEstudiantesSeleccionados(HttpServletRequest request) {
+<span class="nc" id="L368">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+                HttpStatus.BAD_REQUEST, &quot;Selecciona al menos un estudiante.&quot;);
+<span class="nc" id="L370">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/sin-estudiantes-seleccionados&quot;));</span>
+<span class="nc" id="L371">        problema.setTitle(&quot;Solicitud inválida&quot;);</span>
+<span class="nc" id="L372">        problema.setInstance(URI.create(request.getRequestURI()));</span>
+<span class="nc" id="L373">        return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
     }
 
     private ResponseEntity&lt;ProblemDetail&gt; errorEstudianteNoMatriculado(HttpServletRequest request, Integer idUsuario, Integer idMateria) {
-<span class="nc" id="L256">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+<span class="nc" id="L377">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
                 HttpStatus.FORBIDDEN, &quot;El usuario &quot; + idUsuario + &quot; no está matriculado en la materia &quot; + idMateria + &quot;.&quot;);
-<span class="nc" id="L258">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/no-matriculado&quot;));</span>
-<span class="nc" id="L259">        problema.setTitle(&quot;Acceso prohibido&quot;);</span>
-<span class="nc" id="L260">        problema.setInstance(URI.create(request.getRequestURI()));</span>
-<span class="nc" id="L261">        return ResponseEntity.status(HttpStatus.FORBIDDEN).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
+<span class="nc" id="L379">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/no-matriculado&quot;));</span>
+<span class="nc" id="L380">        problema.setTitle(&quot;Acceso prohibido&quot;);</span>
+<span class="nc" id="L381">        problema.setInstance(URI.create(request.getRequestURI()));</span>
+<span class="nc" id="L382">        return ResponseEntity.status(HttpStatus.FORBIDDEN).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
