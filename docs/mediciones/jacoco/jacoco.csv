@@ -1,5 +1,5 @@
 GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
-,com.uteq.asistente_academico.service,UsuarioService,10,29,0,0,2,6,1,4,1,4
+,com.uteq.asistente_academico.service,UsuarioService,4,35,0,0,1,7,1,4,1,4
 ,com.uteq.asistente_academico.service,FeriadosService,98,7,4,0,17,2,4,2,2,2
 ,com.uteq.asistente_academico.service,AuthService,0,79,0,0,0,28,0,6,0,6
 ,com.uteq.asistente_academico.service,LoginRateLimiterService,2,55,1,5,0,10,1,8,0,6
@@ -24,6 +24,6 @@ GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_
 ,com.uteq.asistente_academico.controller,HorarioController,48,3,2,0,10,1,3,1,2,1
 ,com.uteq.asistente_academico.controller,ProfesorController.CrearAvisoRequest,9,0,0,0,1,0,1,0,1,0
 ,com.uteq.asistente_academico.controller,ProfesorController.CrearTareaRequest,18,0,0,0,1,0,1,0,1,0
-,com.uteq.asistente_academico.controller,ProfesorController,400,3,22,0,80,1,23,1,12,1
+,com.uteq.asistente_academico.controller,ProfesorController,423,3,24,0,85,1,25,1,13,1
 ,com.uteq.asistente_academico.security,JwtAuthFilter,1,69,4,6,0,16,4,3,0,2
 ,com.uteq.asistente_academico.dto,ResultadoFeriados,9,0,0,0,1,0,1,0,1,0
