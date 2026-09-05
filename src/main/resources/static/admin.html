@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de administración — Asistente Virtual Académico</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --navy: #062B57;
+            --blue-academic: #1769D1;
+            --blue-active: #2F80ED;
+            --gold: #D99A2B;
+            --green: #21A675;
+            --violet: #8064D9;
+            --alert: #C24A3A;
+
+            --bg: #F6F8FC;
+            --card: #FFFFFF;
+            --soft-blue: #EEF5FF;
+            --soft-green: #EDF9F4;
+            --soft-gold: #FFF6E6;
+            --soft-violet: #F5F0FF;
+
+            --ink: #14233B;
+            --muted: #607089;
+            --faint: #8A97AA;
+            --line: #E4EAF2;
+            --shadow: 0 4px 16px rgba(20,35,59,0.08);
+        }
+
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--ink); }
+        .layout { display: grid; grid-template-columns: 248px 1fr; min-height: 100vh; }
+
+        /* ---------- Sidebar (igual que dashboard.html) ---------- */
+        .sidebar { background: var(--navy); color: #C9D6EA; display: flex; flex-direction: column; padding: 28px 16px; }
+        .brand { display: flex; align-items: center; gap: 12px; padding: 0 6px 22px; border-bottom: 1px solid rgba(201,214,234,0.15); margin-bottom: 12px; }
+        .brand-seal { width: 46px; height: 46px; border-radius: 50%; background: #FFFFFF; border: 2px solid var(--gold); display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+        .brand-seal img { width: 100%; height: 100%; object-fit: contain; padding: 3px; }
+        .brand-text { font-family: 'Fraunces', serif; font-weight: 700; font-size: 15px; line-height: 1.2; letter-spacing: 0.02em; color: #FFFFFF; }
+        .brand-text small { display: block; font-family: 'Inter', sans-serif; font-weight: 500; font-size: 9.5px; letter-spacing: 0.06em; color: #8FA3C4; margin-top: 3px; }
+        nav.tabs { display: flex; flex-direction: column; margin-top: 4px; gap: 3px; }
+        .tab { display: flex; align-items: center; gap: 12px; padding: 13px 14px; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; color: #AEC0DC; text-decoration: none; border-radius: 10px; cursor: pointer; border: none; background: none; width: 100%; text-align: left; font-family: 'Inter', sans-serif; }
+        .tab svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .tab.active { background: var(--blue-active); color: #FFFFFF; box-shadow: 0 4px 12px rgba(47,128,237,0.35); }
+        .tab:not(.active):hover { background: rgba(201,214,234,0.08); color: #FFFFFF; }
+        .role-badge { margin: 4px 6px 14px; padding: 6px 10px; background: rgba(217,154,43,0.18); border: 1px solid rgba(217,154,43,0.35); border-radius: 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold); text-align: center; }
+        .sidebar-footer { margin-top: auto; padding: 16px 14px 0; border-top: 1px solid rgba(201,214,234,0.15); }
+        .sidebar-footer button { width: 100%; display: flex; align-items: center; gap: 10px; background: none; border: none; color: #AEC0DC; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; padding: 10px 0; cursor: pointer; }
+        .sidebar-footer button:hover { color: #FFFFFF; }
+        .sidebar-footer svg { width: 16px; height: 16px; }
+
+        /* ---------- Main ---------- */
+        main { padding: 34px 44px 60px; }
+        h1.page-title { font-family: 'Fraunces', serif; font-weight: 700; font-size: 32px; color: var(--navy); margin: 0 0 6px; }
+        .page-sub { font-size: 13.5px; color: var(--muted); margin-bottom: 26px; }
+
+        .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+        .section-head h2 { font-family: 'Fraunces', serif; font-size: 19px; font-weight: 700; margin: 0; color: var(--navy); }
+
+        .panel { display: none; }
+        .panel.active { display: block; }
+
+        /* ---------- Tabla de usuarios ---------- */
+        .table-card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+        thead th {
+            text-align: left; padding: 13px 18px; background: var(--soft-blue); color: var(--navy);
+            font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+            border-bottom: 1px solid var(--line);
+        }
+        tbody td { padding: 13px 18px; border-bottom: 1px solid var(--line); color: var(--ink); vertical-align: middle; }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background: var(--bg); }
+
+        .rol-chip { display: inline-block; padding: 4px 11px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.03em; }
+        .rol-chip.ADMIN { background: var(--soft-violet); color: var(--violet); }
+        .rol-chip.PROFESOR { background: var(--soft-gold); color: var(--gold); }
+        .rol-chip.ESTUDIANTE { background: var(--soft-blue); color: var(--blue-academic); }
+
+        .icon-btn {
+            width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--card);
+            color: var(--muted); display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+        }
+        .icon-btn.danger:hover { background: #FBEAE7; color: var(--alert); border-color: #FBEAE7; }
+        .icon-btn svg { width: 16px; height: 16px; }
+
+        .ticket-code {
+            display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+            color: var(--gold); background: var(--soft-gold); padding: 3px 9px; border-radius: 6px;
+        }
+
+        .pagination { display: flex; justify-content: center; gap: 10px; align-items: center; margin-top: 18px; }
+        .pagination button {
+            background: var(--card); border: 1px solid var(--line); color: var(--ink); padding: 8px 14px;
+            border-radius: 8px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+        }
+        .pagination button:disabled { opacity: 0.45; cursor: not-allowed; }
+        .pagination span { font-size: 12.5px; color: var(--muted); }
+
+        .empty-note, .loading-note, .error-note {
+            background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+            padding: 30px 22px; font-size: 13.5px; color: var(--muted); text-align: center;
+        }
+        .error-note { color: var(--alert); }
+
+        @media (max-width: 860px) {
+            .layout { grid-template-columns: 1fr; }
+            .sidebar { flex-direction: row; overflow-x: auto; padding: 12px; }
+            .brand, .sidebar-footer, .role-badge { display: none; }
+            nav.tabs { flex-direction: row; }
+            main { padding: 22px; }
+            .table-card { overflow-x: auto; }
+        }
+        :focus-visible { outline: 2px solid var(--blue-active); outline-offset: 2px; }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-seal"><img src="img/uteq-logo.png" alt="Escudo UTEQ"></div>
+            <div class="brand-text">UTEQ<small>Universidad Técnica Estatal de Quevedo</small></div>
+        </div>
+        <div class="role-badge">Panel de administración</div>
+        <nav class="tabs">
+            <button class="tab active" data-panel="panelUsuarios" onclick="mostrarPanel('panelUsuarios', this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Usuarios
+            </button>
+            <button class="tab" data-panel="panelTareas" onclick="mostrarPanel('panelTareas', this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="17" rx="1"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>
+                Todas las tareas
+            </button>
+        </nav>
+        <div class="sidebar-footer">
+            <button onclick="cerrarSesion()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+                Cerrar sesión
+            </button>
+        </div>
+    </aside>
+
+    <main>
+        <h1 class="page-title">Panel de administración</h1>
+        <div class="page-sub">Gestión global de usuarios y supervisión de tareas del sistema.</div>
+
+        <!-- ---------- Panel: Usuarios ---------- -->
+        <div class="panel active" id="panelUsuarios">
+            <div class="section-head">
+                <h2>Usuarios</h2>
+                <span class="page-sub" id="usuariosSub" style="margin:0;">Cargando…</span>
+            </div>
+            <div id="usuariosCont">
+                <div class="loading-note">Cargando usuarios…</div>
+            </div>
+        </div>
+
+        <!-- ---------- Panel: Tareas ---------- -->
+        <div class="panel" id="panelTareas">
+            <div class="section-head">
+                <h2>Todas las tareas</h2>
+                <span class="page-sub" id="tareasSub" style="margin:0;">Cargando…</span>
+            </div>
+            <div id="tareasCont">
+                <div class="loading-note">Cargando tareas…</div>
+            </div>
+            <div class="pagination" id="tareasPaginacion" style="display:none;">
+                <button id="btnPagAnterior" onclick="cambiarPaginaTareas(-1)">← Anterior</button>
+                <span id="pagInfo"></span>
+                <button id="btnPagSiguiente" onclick="cambiarPaginaTareas(1)">Siguiente →</button>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = 'index.html';
+
+    let paginaTareas = 0;
+    let totalPaginasTareas = 1;
+    let usuariosCache = [];
+
+    function headers() {
+        return { 'Authorization': 'Bearer ' + token };
+    }
+
+    function escapeHtml(texto) {
+        const div = document.createElement('div');
+        div.textContent = texto == null ? '' : String(texto);
+        return div.innerHTML;
+    }
+
+    function manejarSesionInvalida(status) {
+        if (status === 401 || status === 403) {
+            localStorage.clear();
+            window.location.href = 'index.html';
+            return true;
+        }
+        return false;
+    }
+
+    function mostrarPanel(idPanel, boton) {
+        document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('active'); });
+        document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+        document.getElementById(idPanel).classList.add('active');
+        boton.classList.add('active');
+    }
+
+    function formatearFecha(iso) {
+        if (!iso) return '—';
+        var fecha = new Date(iso);
+        if (isNaN(fecha.getTime())) return '—';
+        var meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+        return fecha.getDate() + ' ' + meses[fecha.getMonth()] + ' ' + fecha.getFullYear();
+    }
+
+    // ---------- Usuarios ----------
+    async function cargarUsuarios() {
+        const cont = document.getElementById('usuariosCont');
+        try {
+            const resp = await fetch('https://localhost:8443/api/admin/usuarios', { headers: headers() });
+            if (manejarSesionInvalida(resp.status)) return;
+            if (!resp.ok) throw new Error();
+            const usuarios = await resp.json();
+            usuariosCache = usuarios;
+
+            document.getElementById('usuariosSub').textContent =
+                usuarios.length + (usuarios.length === 1 ? ' usuario registrado' : ' usuarios registrados');
+
+            if (!usuarios.length) {
+                cont.innerHTML = '<div class="empty-note">No hay usuarios registrados.</div>';
+                return;
+            }
+
+            cont.innerHTML = '<div class="table-card"><table>' +
+                '<thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Registrado</th><th></th></tr></thead>' +
+                '<tbody>' +
+                usuarios.map(function (u) {
+                    return '<tr>' +
+                        '<td>' + escapeHtml(u.nombre) + '</td>' +
+                        '<td>' + escapeHtml(u.email) + '</td>' +
+                        '<td><span class="rol-chip ' + escapeHtml(u.rol) + '">' + escapeHtml(u.rol) + '</span></td>' +
+                        '<td>' + formatearFecha(u.fechaRegistro) + '</td>' +
+                        '<td>' +
+                            '<button class="icon-btn danger" title="Eliminar usuario" data-id="' + u.idUsuario + '" onclick="eliminarUsuario(this.dataset.id)">' +
+                                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>' +
+                            '</button>' +
+                        '</td>' +
+                    '</tr>';
+                }).join('') +
+                '</tbody></table></div>';
+        } catch (e) {
+            cont.innerHTML = '<div class="error-note">No se pudo cargar la lista de usuarios.</div>';
+        }
+    }
+
+    async function eliminarUsuario(idUsuario) {
+        idUsuario = parseInt(idUsuario, 10);
+        // El nombre se busca en la lista ya cargada, nunca se arma HTML
+        // con el desde el atributo del boton: confirm() no interpreta
+        // HTML, asi que usar el nombre real aca es seguro incluso si
+        // contiene comillas u otros caracteres especiales.
+        const usuario = usuariosCache.find(function (u) { return u.idUsuario === idUsuario; });
+        const nombre = usuario ? usuario.nombre : ('usuario #' + idUsuario);
+        if (!confirm('¿Eliminar la cuenta de "' + nombre + '"? Esta acción no se puede deshacer.')) return;
+        try {
+            const resp = await fetch('https://localhost:8443/api/admin/usuarios/' + idUsuario, {
+                method: 'DELETE',
+                headers: headers()
+            });
+            if (manejarSesionInvalida(resp.status)) return;
+            if (!resp.ok) throw new Error();
+            await cargarUsuarios();
+        } catch (e) {
+            alert('No se pudo eliminar el usuario.');
+        }
+    }
+
+    // ---------- Tareas (paginadas) ----------
+    async function cargarTareas() {
+        const cont = document.getElementById('tareasCont');
+        try {
+            const resp = await fetch('https://localhost:8443/api/admin/tareas?page=' + paginaTareas + '&size=10', { headers: headers() });
+            if (manejarSesionInvalida(resp.status)) return;
+            if (!resp.ok) throw new Error();
+            const datos = await resp.json();
+            const tareas = datos.content || [];
+            totalPaginasTareas = datos.totalPages || 1;
+
+            document.getElementById('tareasSub').textContent =
+                (datos.totalElements != null ? datos.totalElements : tareas.length) + ' tarea(s) en el sistema';
+
+            if (!tareas.length) {
+                cont.innerHTML = '<div class="empty-note">No hay tareas registradas.</div>';
+                document.getElementById('tareasPaginacion').style.display = 'none';
+                return;
+            }
+
+            cont.innerHTML = '<div class="table-card"><table>' +
+                '<thead><tr><th>Código</th><th>Título</th><th>Materia</th><th>Estudiante</th><th>Entrega</th></tr></thead>' +
+                '<tbody>' +
+                tareas.map(function (t) {
+                    const materiaNombre = t.materia ? t.materia.nombre : '—';
+                    const estudianteNombre = t.usuario ? t.usuario.nombre : '—';
+                    return '<tr>' +
+                        '<td><span class="ticket-code">' + escapeHtml(t.codigo || ('TAR-' + t.idTarea)) + '</span></td>' +
+                        '<td>' + escapeHtml(t.titulo) + '</td>' +
+                        '<td>' + escapeHtml(materiaNombre) + '</td>' +
+                        '<td>' + escapeHtml(estudianteNombre) + '</td>' +
+                        '<td>' + formatearFecha(t.fechaEntrega) + '</td>' +
+                    '</tr>';
+                }).join('') +
+                '</tbody></table></div>';
+
+            document.getElementById('tareasPaginacion').style.display = totalPaginasTareas > 1 ? 'flex' : 'none';
+            document.getElementById('pagInfo').textContent = 'Página ' + (paginaTareas + 1) + ' de ' + totalPaginasTareas;
+            document.getElementById('btnPagAnterior').disabled = paginaTareas <= 0;
+            document.getElementById('btnPagSiguiente').disabled = paginaTareas >= totalPaginasTareas - 1;
+        } catch (e) {
+            cont.innerHTML = '<div class="error-note">No se pudo cargar la lista de tareas.</div>';
+        }
+    }
+
+    function cambiarPaginaTareas(delta) {
+        const nueva = paginaTareas + delta;
+        if (nueva < 0 || nueva >= totalPaginasTareas) return;
+        paginaTareas = nueva;
+        cargarTareas();
+    }
+
+    function cerrarSesion() {
+        localStorage.clear();
+        window.location.href = 'index.html';
+    }
+
+    cargarUsuarios();
+    cargarTareas();
+</script>
+</body>
+</html>

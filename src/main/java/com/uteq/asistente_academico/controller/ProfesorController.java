@@ -107,6 +107,23 @@ public class ProfesorController {
     }
 
     /**
+     * Tareas de una materia propia, para poblar el selector de "sobre
+     * cuál tarea avisar" en el formulario de avisos (cada Tarea trae su
+     * "usuario" anidado, asi el frontend puede mostrar a que estudiante
+     * pertenece sin otra llamada).
+     */
+    @PreAuthorize("hasRole('PROFESOR')")
+    @GetMapping("/materias/{idMateria}/tareas")
+    public ResponseEntity<?> misTareasDeMateria(Authentication authentication, HttpServletRequest request, @PathVariable Integer idMateria) {
+        Usuario profesor = resolverProfesor(authentication);
+        Optional<Materia> materiaOpt = validarMateriaPropia(idMateria, profesor);
+        if (materiaOpt.isEmpty()) {
+            return errorMateriaNoPropia(request, idMateria);
+        }
+        return ResponseEntity.ok(tareaRepository.findByMateria_IdMateria(idMateria));
+    }
+
+    /**
      * Crea una tarea para UN estudiante matriculado en una materia
      * propia. Genera el codigo de seguimiento igual que
      * TareaController.crear() (mismo sp_generar_codigo_tarea).

@@ -256,7 +256,14 @@
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('nombre', data.nombre);
                 localStorage.setItem('rol', data.rol);
-                window.location.href = 'dashboard.html';
+
+                if (data.rol === 'ADMIN') {
+                    window.location.href = 'admin.html';
+                } else if (data.rol === 'PROFESOR') {
+                    window.location.href = 'profesor.html';
+                } else {
+                    window.location.href = 'dashboard.html';
+                }
             } else {
                 mensaje.style.display = 'block';
                 mensaje.className = '';
