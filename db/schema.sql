@@ -3,10 +3,10 @@
 -- via docker-entrypoint-initdb.d al levantar el contenedor de PostgreSQL
 -- desde una clonacion limpia (Bloque B - Reproducibilidad automatica).
 -- Equivalente al resultado combinado de V1__schema_inicial.sql +
--- V2__add_codigo_tarea.sql en src/main/resources/db/migration/ (que
--- Flyway aplica en entornos de desarrollo local sin Docker): este
--- archivo representa el esquema final ya migrado, no un historial de
--- pasos incrementales.
+-- V2__add_codigo_tarea.sql + V3__matricula_y_profesor.sql en
+-- src/main/resources/db/migration/ (que Flyway aplica en entornos de
+-- desarrollo local sin Docker): este archivo representa el esquema
+-- final ya migrado, no un historial de pasos incrementales.
 -- Prohibido depender de spring.jpa.hibernate.ddl-auto=update: el esquema
 -- se define unicamente aqui.
 
@@ -21,7 +21,20 @@ CREATE TABLE usuarios (
 
 CREATE TABLE materia (
                          id_materia  SERIAL PRIMARY KEY,
-                         nombre      VARCHAR(100) NOT NULL
+                         nombre      VARCHAR(100) NOT NULL,
+                         id_profesor INTEGER REFERENCES usuarios(id_usuario)
+);
+
+-- Matricula: relacion estudiante <-> materia. Nullable en materia.id_profesor
+-- arriba porque no toda materia tiene profesor asignado; UNIQUE aqui
+-- porque un estudiante no puede matricularse dos veces en la misma
+-- materia.
+CREATE TABLE matricula (
+    id_matricula     SERIAL PRIMARY KEY,
+    id_usuario       INTEGER NOT NULL REFERENCES usuarios(id_usuario),
+    id_materia       INTEGER NOT NULL REFERENCES materia(id_materia),
+    fecha_matricula  TIMESTAMP NOT NULL DEFAULT NOW(),
+    UNIQUE (id_usuario, id_materia)
 );
 
 CREATE TABLE horario (

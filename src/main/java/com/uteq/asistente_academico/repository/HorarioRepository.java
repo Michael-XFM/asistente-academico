@@ -2,6 +2,7 @@ package com.uteq.asistente_academico.repository;
 
 import com.uteq.asistente_academico.entity.Horario;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 
@@ -10,6 +11,18 @@ import java.util.List;
 
 public interface HorarioRepository extends JpaRepository<Horario, Integer> {
     List<Horario> findByMateria_IdMateria(Integer idMateria);
+
+    /**
+     * GET /api/horarios/mios: un horario es "mio" si su materia tiene
+     * una fila de Matricula para el usuario autenticado. JPQL (no SP):
+     * es un filtro relacional simple, sin agregacion ni actualizacion
+     * masiva -- no califica para el Bloque A.2 de procedimientos
+     * almacenados, encaja naturalmente como ORM.
+     */
+    @Query("SELECT h FROM Horario h WHERE h.materia.idMateria IN " +
+            "(SELECT m.materia.idMateria FROM Matricula m WHERE m.usuario.idUsuario = :idUsuario) " +
+            "ORDER BY h.diaSemana, h.horaInicio")
+    List<Horario> findMisHorarios(@Param("idUsuario") Integer idUsuario);
 
     /**
      * sp_validar_disponibilidad_horario (Bloque A.2 — validaciones

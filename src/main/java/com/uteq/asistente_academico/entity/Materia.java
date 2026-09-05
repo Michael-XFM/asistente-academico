@@ -15,4 +15,12 @@ public class Materia {
 
     @Column(name = "nombre", nullable = false, length = 100)
     private String nombre;
+
+    // Nullable: no toda materia tiene profesor asignado (ver
+    // V3__matricula_y_profesor.sql). Sin @JsonIgnore porque, a
+    // diferencia de Usuario.contrasena, no hay dato sensible aca -- el
+    // profesor de una materia es informacion publica dentro del sistema.
+    @ManyToOne
+    @JoinColumn(name = "id_profesor")
+    private Usuario profesor;
 }
