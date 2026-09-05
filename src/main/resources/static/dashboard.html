@@ -394,6 +394,12 @@
 
         .ticket-fecha.dias-poco { color: var(--alert); font-weight: 600; }
 
+        /* Vigente/Vencida junto a la cuenta regresiva -- mismos colores de
+           éxito/error ya usados en el resto de la app, no un color nuevo. */
+        .badge-vigencia { display: inline-block; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; padding: 2px 9px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
+        .badge-vigencia.vigente { color: var(--green); background: var(--soft-green); }
+        .badge-vigencia.vencida { color: var(--alert); background: #FBEAE7; }
+
         .stamp {
             font-family: 'Inter', sans-serif;
             font-weight: 700;
@@ -669,7 +675,7 @@
         if (dias > 0 || horas > 0) partes.push(horas + 'h');
         partes.push(minutos + 'm');
         var texto = partes.slice(0, 2).join(' ');
-        return vencida ? 'venció hace ' + texto : 'quedan ' + texto;
+        return vencida ? 'cerró hace ' + texto : 'quedan ' + texto;
     }
 
     let pendientesCache = [];
@@ -775,6 +781,7 @@
                     '<div class="ticket-meta">Entrega</div>' +
                     '<div class="ticket-fecha ' + (pocoTiempo ? 'dias-poco' : '') + '">' +
                         formatearFecha(t.fechaEntrega) + ' · cierra ' + formatearHoraLimite(t.horaLimite) + ' · ' + formatearCuentaRegresiva(seg) +
+                        ' <span class="badge-vigencia ' + (vencida ? 'vencida' : 'vigente') + '">' + (vencida ? 'Vencida' : 'Vigente') + '</span>' +
                     '</div>' +
                 '</div>' +
                 '<div class="stamp ' + (vencida ? 'vencida' : 'pendiente') + '">' +

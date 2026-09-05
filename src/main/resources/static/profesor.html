@@ -118,6 +118,11 @@
         .tarea-codigo { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--faint); }
         .tarea-titulo { font-weight: 700; font-size: 14px; margin: 2px 0; }
         .tarea-meta { font-size: 12px; color: var(--muted); }
+        /* Vigente/Vencida junto a la fecha/hora -- mismos colores de
+           éxito/error ya usados en .form-msg.success/.error, no un color nuevo. */
+        .badge-vigencia { display: inline-block; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; padding: 2px 9px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
+        .badge-vigencia.vigente { color: var(--green); background: var(--soft-green); }
+        .badge-vigencia.vencida { color: var(--alert); background: #FBEAE7; }
         .tarea-edit-btn {
             background: none; border: 1px solid var(--line); border-radius: 8px; padding: 8px;
             cursor: pointer; color: var(--blue-academic); flex-shrink: 0; display: flex;
@@ -334,6 +339,15 @@
         return div.innerHTML;
     }
 
+    // Misma lógica que tareas.html/dashboard.html: combina fecha_entrega +
+    // hora_limite en un instante exacto y devuelve los segundos restantes
+    // (negativo si ya venció), para que el badge Vigente/Vencida no se
+    // desfase respecto a la cuenta regresiva de las otras vistas.
+    function segundosHastaLimite(fechaEntrega, horaLimite) {
+        const limite = new Date(fechaEntrega + 'T' + (horaLimite || '23:59:59'));
+        return Math.floor((limite - new Date()) / 1000);
+    }
+
     function manejarSesionInvalida(status) {
         if (status === 401 || status === 403) {
             localStorage.clear();
@@ -459,12 +473,15 @@
         box.innerHTML = tareasCache.map(function (t) {
             const estudianteNombre = t.usuario ? t.usuario.nombre : '—';
             const hora = (t.horaLimite || '23:59:59').slice(0, 5);
+            const vencida = segundosHastaLimite(t.fechaEntrega, t.horaLimite) < 0;
             return '' +
             '<div class="tarea-row">' +
                 '<div class="tarea-row-main">' +
                     '<div class="tarea-codigo">' + escapeHtml(t.codigo || ('TAR-' + t.idTarea)) + '</div>' +
                     '<div class="tarea-titulo">' + escapeHtml(t.titulo) + '</div>' +
-                    '<div class="tarea-meta">' + escapeHtml(estudianteNombre) + ' · entrega ' + escapeHtml(t.fechaEntrega) + ' · ' + hora + '</div>' +
+                    '<div class="tarea-meta">' + escapeHtml(estudianteNombre) + ' · entrega ' + escapeHtml(t.fechaEntrega) + ' · ' + hora +
+                        ' <span class="badge-vigencia ' + (vencida ? 'vencida' : 'vigente') + '">' + (vencida ? 'Vencida' : 'Vigente') + '</span>' +
+                    '</div>' +
                 '</div>' +
                 '<button type="button" class="tarea-edit-btn" title="Editar" onclick="abrirModalEditar(' + t.idTarea + ')">' +
                     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' +
@@ -630,6 +647,10 @@
     }
 
     cargarMaterias();
+
+    // Refresca solo el render (sin volver a pedir datos al backend) para
+    // que el badge Vigente/Vencida no quede desactualizado con el tiempo.
+    setInterval(renderizarListaTareas, 60000);
 </script>
 </body>
 </html>
