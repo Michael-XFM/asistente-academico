@@ -7,6 +7,8 @@ import com.uteq.asistente_academico.entity.Usuario;
 import com.uteq.asistente_academico.exception.ApiExternaException;
 import com.uteq.asistente_academico.repository.DashboardRepository;
 import com.uteq.asistente_academico.repository.HorarioRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +24,7 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -39,7 +42,14 @@ import java.util.stream.Collectors;
 @Service
 public class ChatbotService {
 
-    private static final String MODELO = "gemini-2.5-flash";
+    private static final Logger log = LoggerFactory.getLogger(ChatbotService.class);
+
+    // gemini-2.5-flash (el modelo pedido originalmente) ya no esta
+    // disponible para claves nuevas -- la API devuelve 404 e indica
+    // migrar a este. Verificado con la clave real: responde (o da 503 de
+    // alta demanda transitorio de Google), a diferencia de 2.5-flash que
+    // da 404 "no longer available to new users" de forma permanente.
+    private static final String MODELO = "gemini-3.6-flash";
     // La clave va en el header x-goog-api-key (recomendado por Google),
     // no como query param -- evita que quede expuesta en logs de
     // request/exception (URLs completas suelen loguearse tal cual,
@@ -103,7 +113,14 @@ public class ChatbotService {
                preguntas puntuales sobre SU situación real (ej. "¿qué tareas tengo
                esta semana?", "¿a qué hora es mi próxima clase?"). Si te preguntan
                algo sobre sus datos que no está en ese contexto, decí que no tenés
-               esa información en vez de inventarla.""";
+               esa información en vez de inventarla.
+
+            6. TEXTO PLANO, SIN MARKDOWN: el frontend no interpreta Markdown, así
+               que nunca uses **negrita**, *cursiva*, encabezados con #, ni listas
+               con guiones o asteriscos (-, *) — esos símbolos se mostrarían
+               literales y romperían la legibilidad. Si necesitás enumerar varios
+               ítems, usá oraciones simples o numeración con paréntesis tipo "1)",
+               "2)", nunca guiones ni asteriscos.""";
 
     @Autowired
     private DashboardRepository dashboardRepository;
@@ -118,14 +135,32 @@ public class ChatbotService {
     @Value("${gemini.api.key}")
     private String apiKey;
 
+    /**
+     * Logueado igual que AuthController (formato TAG | clave=valor | ...):
+     * solo el email del estudiante, timestamp y el motivo/status en caso
+     * de error -- NUNCA el mensaje ni la respuesta, que son contenido del
+     * estudiante, no datos operativos, y no tienen por que quedar en un
+     * log de texto plano.
+     */
     public String responder(Usuario estudiante, String mensajeNuevo, List<ChatMensaje> historial) {
         if (apiKey == null || apiKey.isBlank()) {
-            throw new ApiExternaException(HttpStatus.SERVICE_UNAVAILABLE,
+            ApiExternaException ex = new ApiExternaException(HttpStatus.SERVICE_UNAVAILABLE,
                     "El asistente virtual no está disponible en este momento (falta configuración).", null);
+            log.warn("CHATBOT_ERROR | sub={} | timestamp={} | status={} | motivo={}",
+                    estudiante.getEmail(), Instant.now(), ex.getStatus(), ex.getMessage());
+            throw ex;
         }
 
         String systemInstruction = SYSTEM_PROMPT_BASE + "\n\n" + construirContexto(estudiante);
-        return llamarGemini(systemInstruction, historial, mensajeNuevo);
+        try {
+            String respuesta = llamarGemini(systemInstruction, historial, mensajeNuevo);
+            log.info("CHATBOT_EXITO | sub={} | timestamp={}", estudiante.getEmail(), Instant.now());
+            return respuesta;
+        } catch (ApiExternaException e) {
+            log.warn("CHATBOT_ERROR | sub={} | timestamp={} | status={} | motivo={}",
+                    estudiante.getEmail(), Instant.now(), e.getStatus(), e.getMessage());
+            throw e;
+        }
     }
 
     private String construirContexto(Usuario estudiante) {

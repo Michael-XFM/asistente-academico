@@ -31,12 +31,17 @@ public class RestTemplateConfig {
      * feriados -- reusar el bean de arriba (5s de lectura) haria que
      * timeoutee con respuestas normales. Bean con nombre propio para
      * poder inyectar el correcto con @Qualifier en cada service.
+     *
+     * 60s (no 30s): confirmado en vivo que las respuestas que requieren
+     * mas razonamiento (ej. guiar en vez de resolver un ejercicio)
+     * tardan lo suficiente como para que 30s dispare 502/504 seguido,
+     * obligando al estudiante a reintentar a mano.
      */
     @Bean
     public RestTemplate geminiRestTemplate(RestTemplateBuilder builder) {
         return builder
                 .connectTimeout(Duration.ofSeconds(5))
-                .readTimeout(Duration.ofSeconds(30))
+                .readTimeout(Duration.ofSeconds(60))
                 .build();
     }
 }
