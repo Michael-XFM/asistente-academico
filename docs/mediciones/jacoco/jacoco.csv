@@ -3,14 +3,14 @@ GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_
 ,com.uteq.asistente_academico.service,FeriadosService,98,7,4,0,17,2,4,2,2,2
 ,com.uteq.asistente_academico.service,AuthService,0,79,0,0,0,28,0,6,0,6
 ,com.uteq.asistente_academico.service,LoginRateLimiterService,2,55,1,5,0,10,1,8,0,6
-,com.uteq.asistente_academico.service,EntregaService,427,9,28,0,82,2,30,2,16,2
+,com.uteq.asistente_academico.service,EntregaService,46,390,5,23,6,78,8,24,3,15
 ,com.uteq.asistente_academico.service,RedisService,57,25,2,0,18,5,3,4,2,4
 ,com.uteq.asistente_academico.service,FeriadosService.new TypeReference() {...},3,0,0,0,1,0,1,0,1,0
-,com.uteq.asistente_academico.exception,EntregaException,22,0,0,0,8,0,4,0,4,0
+,com.uteq.asistente_academico.exception,EntregaException,0,22,0,0,0,8,0,4,0,4
 ,com.uteq.asistente_academico.exception,ApiExternaException,11,0,0,0,4,0,2,0,2,0
 ,com.uteq.asistente_academico,AsistenteAcademicoApplication,5,3,0,0,2,1,1,1,1,1
 ,com.uteq.asistente_academico.config,SecurityConfig,0,124,0,0,0,23,0,11,0,11
-,com.uteq.asistente_academico.config,GlobalExceptionHandler,145,3,0,0,33,1,6,1,6,1
+,com.uteq.asistente_academico.config,GlobalExceptionHandler,96,52,0,0,23,11,4,3,4,3
 ,com.uteq.asistente_academico.config,RestTemplateConfig,0,12,0,0,0,5,0,2,0,2
 ,com.uteq.asistente_academico.config,OpenApiConfig,0,50,0,0,0,17,0,2,0,2
 ,com.uteq.asistente_academico.controller,CalificacionController.CalificacionListado,9,0,0,0,1,0,1,0,1,0
@@ -20,7 +20,7 @@ GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_
 ,com.uteq.asistente_academico.controller,CalificacionController,116,3,4,0,25,1,6,1,4,1
 ,com.uteq.asistente_academico.controller,AdminController,77,3,2,0,20,1,4,1,3,1
 ,com.uteq.asistente_academico.controller,ProfesorController.CrearTareaMasivaRequest,21,0,0,0,1,0,1,0,1,0
-,com.uteq.asistente_academico.controller,EntregaController.CalificarEntregaRequest,9,0,0,0,1,0,1,0,1,0
+,com.uteq.asistente_academico.controller,EntregaController.CalificarEntregaRequest,0,9,0,0,0,1,0,1,0,1
 ,com.uteq.asistente_academico.controller,ProfesorController.CrearCalificacionRequest,12,0,0,0,1,0,1,0,1,0
 ,com.uteq.asistente_academico.controller,TareaController,62,238,9,17,15,51,10,14,1,10
 ,com.uteq.asistente_academico.controller,FeriadosController,55,3,2,0,10,1,2,1,1,1
@@ -29,8 +29,8 @@ GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_
 ,com.uteq.asistente_academico.controller,HorarioController,48,3,2,0,10,1,3,1,2,1
 ,com.uteq.asistente_academico.controller,ProfesorController.CrearAvisoRequest,9,0,0,0,1,0,1,0,1,0
 ,com.uteq.asistente_academico.controller,ProfesorController.CrearTareaRequest,18,0,0,0,1,0,1,0,1,0
-,com.uteq.asistente_academico.controller,EntregaController,218,3,16,0,47,1,16,1,7,1
+,com.uteq.asistente_academico.controller,EntregaController,81,140,9,7,20,28,11,6,2,6
 ,com.uteq.asistente_academico.controller,ProfesorController,670,3,44,0,137,1,39,1,17,1
 ,com.uteq.asistente_academico.security,JwtAuthFilter,1,69,4,6,0,16,4,3,0,2
 ,com.uteq.asistente_academico.dto,ResultadoFeriados,9,0,0,0,1,0,1,0,1,0
-,com.uteq.asistente_academico.dto,EstadoEntregaEstudiante,30,0,0,0,1,0,1,0,1,0
+,com.uteq.asistente_academico.dto,EstadoEntregaEstudiante,0,30,0,0,0,1,0,1,0,1

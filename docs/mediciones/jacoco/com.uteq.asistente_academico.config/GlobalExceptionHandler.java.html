@@ -53,14 +53,14 @@ import java.net.URI;
      */
     @ExceptionHandler(AccessDeniedException.class)
     public ProblemDetail manejarAccesoDenegado(AccessDeniedException ex, WebRequest request) {
-<span class="nc" id="L56">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+<span class="fc" id="L56">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
                 HttpStatus.FORBIDDEN,
                 &quot;Tu rol no tiene permiso para acceder a este recurso.&quot;
         );
-<span class="nc" id="L60">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/rol-insuficiente&quot;));</span>
-<span class="nc" id="L61">        problema.setTitle(&quot;Acceso prohibido&quot;);</span>
-<span class="nc" id="L62">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
-<span class="nc" id="L63">        return problema;</span>
+<span class="fc" id="L60">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/rol-insuficiente&quot;));</span>
+<span class="fc" id="L61">        problema.setTitle(&quot;Acceso prohibido&quot;);</span>
+<span class="fc" id="L62">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
+<span class="fc" id="L63">        return problema;</span>
     }
 
     /**
@@ -88,11 +88,11 @@ import java.net.URI;
      */
     @ExceptionHandler(EntregaException.class)
     public ProblemDetail manejarEntrega(EntregaException ex, WebRequest request) {
-<span class="nc" id="L91">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());</span>
-<span class="nc" id="L92">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/&quot; + ex.getTipo()));</span>
-<span class="nc" id="L93">        problema.setTitle(ex.getTitulo());</span>
-<span class="nc" id="L94">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
-<span class="nc" id="L95">        return problema;</span>
+<span class="fc" id="L91">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());</span>
+<span class="fc" id="L92">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/&quot; + ex.getTipo()));</span>
+<span class="fc" id="L93">        problema.setTitle(ex.getTitulo());</span>
+<span class="fc" id="L94">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
+<span class="fc" id="L95">        return problema;</span>
     }
 
     /**

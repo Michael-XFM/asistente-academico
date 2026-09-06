@@ -17,22 +17,22 @@ public class EntregaException extends RuntimeException {
     private final String titulo;
 
     public EntregaException(HttpStatus status, String tipo, String titulo, String mensaje) {
-<span class="nc" id="L20">        super(mensaje);</span>
-<span class="nc" id="L21">        this.status = status;</span>
-<span class="nc" id="L22">        this.tipo = tipo;</span>
-<span class="nc" id="L23">        this.titulo = titulo;</span>
-<span class="nc" id="L24">    }</span>
+<span class="fc" id="L20">        super(mensaje);</span>
+<span class="fc" id="L21">        this.status = status;</span>
+<span class="fc" id="L22">        this.tipo = tipo;</span>
+<span class="fc" id="L23">        this.titulo = titulo;</span>
+<span class="fc" id="L24">    }</span>
 
     public HttpStatus getStatus() {
-<span class="nc" id="L27">        return status;</span>
+<span class="fc" id="L27">        return status;</span>
     }
 
     public String getTipo() {
-<span class="nc" id="L31">        return tipo;</span>
+<span class="fc" id="L31">        return tipo;</span>
     }
 
     public String getTitulo() {
-<span class="nc" id="L35">        return titulo;</span>
+<span class="fc" id="L35">        return titulo;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

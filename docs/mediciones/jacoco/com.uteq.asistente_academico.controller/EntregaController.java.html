@@ -45,7 +45,7 @@ import java.util.Optional;
     @Autowired
     private UsuarioService usuarioService;
 
-<span class="nc" id="L48">    public record CalificarEntregaRequest(BigDecimal calificacion, String comentarioProf) {</span>
+<span class="fc" id="L48">    public record CalificarEntregaRequest(BigDecimal calificacion, String comentarioProf) {</span>
     }
 
     /**
@@ -57,12 +57,12 @@ import java.util.Optional;
     public ResponseEntity&lt;?&gt; subirEntrega(Authentication authentication, HttpServletRequest request,
                                            @PathVariable Integer idTarea,
                                            @RequestParam(&quot;archivo&quot;) MultipartFile archivo) {
-<span class="nc" id="L60">        Optional&lt;Usuario&gt; estudianteOpt = usuarioService.buscarPorEmail(authentication.getName());</span>
-<span class="nc bnc" id="L61" title="All 2 branches missed.">        if (estudianteOpt.isEmpty()) {</span>
+<span class="fc" id="L60">        Optional&lt;Usuario&gt; estudianteOpt = usuarioService.buscarPorEmail(authentication.getName());</span>
+<span class="pc bpc" id="L61" title="1 of 2 branches missed.">        if (estudianteOpt.isEmpty()) {</span>
 <span class="nc" id="L62">            return errorUsuarioNoEncontrado(request);</span>
         }
-<span class="nc" id="L64">        Entrega entrega = entregaService.subir(idTarea, estudianteOpt.get(), archivo);</span>
-<span class="nc" id="L65">        return ResponseEntity.ok(entrega);</span>
+<span class="fc" id="L64">        Entrega entrega = entregaService.subir(idTarea, estudianteOpt.get(), archivo);</span>
+<span class="fc" id="L65">        return ResponseEntity.ok(entrega);</span>
     }
 
     /**
@@ -74,12 +74,12 @@ import java.util.Optional;
     @GetMapping(&quot;/api/tareas/{idTarea}/entregas&quot;)
     public ResponseEntity&lt;?&gt; listarEntregas(Authentication authentication, HttpServletRequest request,
                                              @PathVariable Integer idTarea) {
-<span class="nc" id="L77">        Optional&lt;Usuario&gt; profesorOpt = usuarioService.buscarPorEmail(authentication.getName());</span>
-<span class="nc bnc" id="L78" title="All 2 branches missed.">        if (profesorOpt.isEmpty()) {</span>
+<span class="fc" id="L77">        Optional&lt;Usuario&gt; profesorOpt = usuarioService.buscarPorEmail(authentication.getName());</span>
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">        if (profesorOpt.isEmpty()) {</span>
 <span class="nc" id="L79">            return errorUsuarioNoEncontrado(request);</span>
         }
-<span class="nc" id="L81">        List&lt;EstadoEntregaEstudiante&gt; estado = entregaService.listarPorTarea(idTarea, profesorOpt.get());</span>
-<span class="nc" id="L82">        return ResponseEntity.ok(estado);</span>
+<span class="fc" id="L81">        List&lt;EstadoEntregaEstudiante&gt; estado = entregaService.listarPorTarea(idTarea, profesorOpt.get());</span>
+<span class="fc" id="L82">        return ResponseEntity.ok(estado);</span>
     }
 
     /**
@@ -90,25 +90,25 @@ import java.util.Optional;
     @GetMapping(&quot;/api/entregas/{idEntrega}/archivo&quot;)
     public ResponseEntity&lt;?&gt; descargarArchivo(Authentication authentication, HttpServletRequest request,
                                                @PathVariable Integer idEntrega) {
-<span class="nc" id="L93">        Optional&lt;Usuario&gt; usuarioOpt = usuarioService.buscarPorEmail(authentication.getName());</span>
-<span class="nc bnc" id="L94" title="All 2 branches missed.">        if (usuarioOpt.isEmpty()) {</span>
+<span class="fc" id="L93">        Optional&lt;Usuario&gt; usuarioOpt = usuarioService.buscarPorEmail(authentication.getName());</span>
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">        if (usuarioOpt.isEmpty()) {</span>
 <span class="nc" id="L95">            return errorUsuarioNoEncontrado(request);</span>
         }
-<span class="nc" id="L97">        Entrega entrega = entregaService.obtenerParaDescarga(idEntrega, usuarioOpt.get());</span>
+<span class="fc" id="L97">        Entrega entrega = entregaService.obtenerParaDescarga(idEntrega, usuarioOpt.get());</span>
 
         try {
-<span class="nc" id="L100">            Path ruta = Paths.get(entrega.getRutaArchivo());</span>
-<span class="nc" id="L101">            Resource recurso = new UrlResource(ruta.toUri());</span>
-<span class="nc bnc" id="L102" title="All 4 branches missed.">            if (!recurso.exists() || !recurso.isReadable()) {</span>
+<span class="fc" id="L100">            Path ruta = Paths.get(entrega.getRutaArchivo());</span>
+<span class="fc" id="L101">            Resource recurso = new UrlResource(ruta.toUri());</span>
+<span class="pc bpc" id="L102" title="2 of 4 branches missed.">            if (!recurso.exists() || !recurso.isReadable()) {</span>
 <span class="nc" id="L103">                return errorArchivoNoDisponible(request, idEntrega);</span>
             }
-<span class="nc" id="L105">            ContentDisposition disposicion = ContentDisposition.builder(&quot;attachment&quot;)</span>
-<span class="nc" id="L106">                    .filename(entrega.getNombreArchivo())</span>
-<span class="nc" id="L107">                    .build();</span>
-<span class="nc" id="L108">            return ResponseEntity.ok()</span>
-<span class="nc" id="L109">                    .contentType(mediaTypePorFormato(entrega.getFormato()))</span>
-<span class="nc" id="L110">                    .header(HttpHeaders.CONTENT_DISPOSITION, disposicion.toString())</span>
-<span class="nc" id="L111">                    .body(recurso);</span>
+<span class="fc" id="L105">            ContentDisposition disposicion = ContentDisposition.builder(&quot;attachment&quot;)</span>
+<span class="fc" id="L106">                    .filename(entrega.getNombreArchivo())</span>
+<span class="fc" id="L107">                    .build();</span>
+<span class="fc" id="L108">            return ResponseEntity.ok()</span>
+<span class="fc" id="L109">                    .contentType(mediaTypePorFormato(entrega.getFormato()))</span>
+<span class="fc" id="L110">                    .header(HttpHeaders.CONTENT_DISPOSITION, disposicion.toString())</span>
+<span class="fc" id="L111">                    .body(recurso);</span>
 <span class="nc" id="L112">        } catch (MalformedURLException e) {</span>
 <span class="nc" id="L113">            return errorArchivoNoDisponible(request, idEntrega);</span>
         }
@@ -123,19 +123,19 @@ import java.util.Optional;
     public ResponseEntity&lt;?&gt; calificarEntrega(Authentication authentication, HttpServletRequest request,
                                                @PathVariable Integer idEntrega,
                                                @RequestBody CalificarEntregaRequest datos) {
-<span class="nc" id="L126">        Optional&lt;Usuario&gt; profesorOpt = usuarioService.buscarPorEmail(authentication.getName());</span>
-<span class="nc bnc" id="L127" title="All 2 branches missed.">        if (profesorOpt.isEmpty()) {</span>
+<span class="fc" id="L126">        Optional&lt;Usuario&gt; profesorOpt = usuarioService.buscarPorEmail(authentication.getName());</span>
+<span class="pc bpc" id="L127" title="1 of 2 branches missed.">        if (profesorOpt.isEmpty()) {</span>
 <span class="nc" id="L128">            return errorUsuarioNoEncontrado(request);</span>
         }
-<span class="nc" id="L130">        Entrega entrega = entregaService.calificar(idEntrega, profesorOpt.get(), datos.calificacion(), datos.comentarioProf());</span>
-<span class="nc" id="L131">        return ResponseEntity.ok(entrega);</span>
+<span class="fc" id="L130">        Entrega entrega = entregaService.calificar(idEntrega, profesorOpt.get(), datos.calificacion(), datos.comentarioProf());</span>
+<span class="fc" id="L131">        return ResponseEntity.ok(entrega);</span>
     }
 
     // ---- helpers ----
 
     private MediaType mediaTypePorFormato(String formato) {
-<span class="nc bnc" id="L137" title="All 4 branches missed.">        return switch (formato) {</span>
-<span class="nc" id="L138">            case &quot;PDF&quot; -&gt; MediaType.APPLICATION_PDF;</span>
+<span class="pc bpc" id="L137" title="3 of 4 branches missed.">        return switch (formato) {</span>
+<span class="fc" id="L138">            case &quot;PDF&quot; -&gt; MediaType.APPLICATION_PDF;</span>
 <span class="nc" id="L139">            case &quot;DOCX&quot; -&gt; MediaType.valueOf(&quot;application/vnd.openxmlformats-officedocument.wordprocessingml.document&quot;);</span>
 <span class="nc" id="L140">            case &quot;XLSX&quot; -&gt; MediaType.valueOf(&quot;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet&quot;);</span>
 <span class="nc" id="L141">            default -&gt; MediaType.APPLICATION_OCTET_STREAM;</span>
