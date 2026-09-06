@@ -1,5 +1,6 @@
 package com.uteq.asistente_academico.service;
 
+import com.uteq.asistente_academico.audit.Auditado;
 import com.uteq.asistente_academico.dto.EstadoEntregaEstudiante;
 import com.uteq.asistente_academico.entity.Entrega;
 import com.uteq.asistente_academico.entity.Materia;
@@ -64,6 +65,7 @@ public class EntregaService {
      * por eso no se revalida aca (mismo criterio que ProfesorController
      * con PROFESOR).
      */
+    @Auditado
     public Entrega subir(Integer idTarea, Usuario estudiante, MultipartFile archivo) {
         Tarea tarea = tareaRepository.findById(idTarea)
                 .orElseThrow(() -> new EntregaException(HttpStatus.NOT_FOUND, "tarea-no-encontrada",
@@ -205,6 +207,7 @@ public class EntregaService {
      * Solo el profesor dueño de la materia puede calificar (rol PROFESOR
      * ya lo garantiza @PreAuthorize en el controlador).
      */
+    @Auditado
     public Entrega calificar(Integer idEntrega, Usuario profesor, BigDecimal calificacion, String comentarioProf) {
         Entrega entrega = entregaRepository.findById(idEntrega)
                 .orElseThrow(() -> new EntregaException(HttpStatus.NOT_FOUND, "entrega-no-encontrada",

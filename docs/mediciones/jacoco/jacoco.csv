@@ -13,6 +13,8 @@ GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_
 ,com.uteq.asistente_academico.service,ChatbotService.GeminiResponse,6,0,0,0,1,0,1,0,1,0
 ,com.uteq.asistente_academico.service,ChatbotService.GeminiSystemInstruction,6,0,0,0,1,0,1,0,1,0
 ,com.uteq.asistente_academico.service,FeriadosService.new TypeReference() {...},3,0,0,0,1,0,1,0,1,0
+,com.uteq.asistente_academico.audit,AuditoriaTransactionRunner,0,15,0,0,0,5,0,2,0,2
+,com.uteq.asistente_academico.audit,AuditoriaAspect,0,32,2,6,0,5,2,5,0,3
 ,com.uteq.asistente_academico.exception,EntregaException,0,22,0,0,0,8,0,4,0,4
 ,com.uteq.asistente_academico.exception,ApiExternaException,11,0,0,0,4,0,2,0,2,0
 ,com.uteq.asistente_academico,AsistenteAcademicoApplication,5,3,0,0,2,1,1,1,1,1

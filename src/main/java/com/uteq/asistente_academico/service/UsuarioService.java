@@ -1,5 +1,6 @@
 package com.uteq.asistente_academico.service;
 
+import com.uteq.asistente_academico.audit.Auditado;
 import com.uteq.asistente_academico.entity.Usuario;
 import com.uteq.asistente_academico.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,7 @@ public class UsuarioService {
 
     private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
+    @Auditado
     public Usuario registrar(Usuario usuario) {
         usuario.setContrasena(encoder.encode(usuario.getContrasena()));
         usuario.setFechaRegistro(LocalDateTime.now());

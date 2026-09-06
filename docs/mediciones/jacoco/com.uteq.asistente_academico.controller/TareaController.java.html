@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TareaController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">com.uteq.asistente_academico.controller</a> &gt; <span class="el_source">TareaController.java</span></div><h1>TareaController.java</h1><pre class="source lang-java linenums">package com.uteq.asistente_academico.controller;
 
+import com.uteq.asistente_academico.audit.Auditado;
 import com.uteq.asistente_academico.entity.Tarea;
 import com.uteq.asistente_academico.entity.Usuario;
 import com.uteq.asistente_academico.repository.TareaRepository;
@@ -37,7 +38,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping(&quot;/api/tareas&quot;)
 @CrossOrigin(origins = {&quot;http://localhost:8080&quot;, &quot;http://localhost&quot;})
-<span class="fc" id="L40">public class TareaController {</span>
+<span class="fc" id="L41">public class TareaController {</span>
 
     @Autowired
     private TareaRepository tareaRepository;
@@ -51,121 +52,124 @@ import java.util.Optional;
             HttpServletRequest request,
             @RequestParam(defaultValue = &quot;0&quot;) int page,
             @RequestParam(defaultValue = &quot;10&quot;) int size) {
-<span class="fc" id="L54">        Optional&lt;Usuario&gt; usuarioOpt = resolverUsuarioAutenticado(authentication);</span>
-<span class="pc bpc" id="L55" title="1 of 2 branches missed.">        if (usuarioOpt.isEmpty()) {</span>
-<span class="nc" id="L56">            return errorUsuarioNoEncontrado(request);</span>
+<span class="fc" id="L55">        Optional&lt;Usuario&gt; usuarioOpt = resolverUsuarioAutenticado(authentication);</span>
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">        if (usuarioOpt.isEmpty()) {</span>
+<span class="nc" id="L57">            return errorUsuarioNoEncontrado(request);</span>
         }
-<span class="fc" id="L58">        Pageable pageable = PageRequest.of(page, size);</span>
-<span class="fc" id="L59">        Page&lt;Tarea&gt; tareas = tareaRepository.findByUsuario_IdUsuario(usuarioOpt.get().getIdUsuario(), pageable);</span>
-<span class="fc" id="L60">        return ResponseEntity.ok(tareas);</span>
+<span class="fc" id="L59">        Pageable pageable = PageRequest.of(page, size);</span>
+<span class="fc" id="L60">        Page&lt;Tarea&gt; tareas = tareaRepository.findByUsuario_IdUsuario(usuarioOpt.get().getIdUsuario(), pageable);</span>
+<span class="fc" id="L61">        return ResponseEntity.ok(tareas);</span>
     }
 
     @GetMapping(&quot;/{id}&quot;)
     public ResponseEntity&lt;?&gt; buscarPorId(Authentication authentication, HttpServletRequest request, @PathVariable Integer id) {
-<span class="fc" id="L65">        Optional&lt;Usuario&gt; usuarioOpt = resolverUsuarioAutenticado(authentication);</span>
-<span class="pc bpc" id="L66" title="1 of 2 branches missed.">        if (usuarioOpt.isEmpty()) {</span>
-<span class="nc" id="L67">            return errorUsuarioNoEncontrado(request);</span>
+<span class="fc" id="L66">        Optional&lt;Usuario&gt; usuarioOpt = resolverUsuarioAutenticado(authentication);</span>
+<span class="pc bpc" id="L67" title="1 of 2 branches missed.">        if (usuarioOpt.isEmpty()) {</span>
+<span class="nc" id="L68">            return errorUsuarioNoEncontrado(request);</span>
         }
-<span class="fc" id="L69">        Optional&lt;Tarea&gt; tareaOpt = tareaRepository.findById(id);</span>
-<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (tareaOpt.isEmpty()) {</span>
-<span class="fc" id="L71">            return errorTareaNoEncontrada(request, id);</span>
+<span class="fc" id="L70">        Optional&lt;Tarea&gt; tareaOpt = tareaRepository.findById(id);</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        if (tareaOpt.isEmpty()) {</span>
+<span class="fc" id="L72">            return errorTareaNoEncontrada(request, id);</span>
         }
-<span class="fc bfc" id="L73" title="All 2 branches covered.">        if (!perteneceAlUsuario(tareaOpt.get(), usuarioOpt.get())) {</span>
-<span class="fc" id="L74">            return errorSinPermiso(request, &quot;ver&quot;);</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">        if (!perteneceAlUsuario(tareaOpt.get(), usuarioOpt.get())) {</span>
+<span class="fc" id="L75">            return errorSinPermiso(request, &quot;ver&quot;);</span>
         }
-<span class="fc" id="L76">        return ResponseEntity.ok(tareaOpt.get());</span>
+<span class="fc" id="L77">        return ResponseEntity.ok(tareaOpt.get());</span>
     }
 
+    @Auditado
     @PostMapping
     public ResponseEntity&lt;?&gt; crear(Authentication authentication, HttpServletRequest request, @RequestBody Tarea tarea) {
-<span class="fc" id="L81">        Optional&lt;Usuario&gt; usuarioOpt = resolverUsuarioAutenticado(authentication);</span>
-<span class="pc bpc" id="L82" title="1 of 2 branches missed.">        if (usuarioOpt.isEmpty()) {</span>
-<span class="nc" id="L83">            return errorUsuarioNoEncontrado(request);</span>
+<span class="fc" id="L83">        Optional&lt;Usuario&gt; usuarioOpt = resolverUsuarioAutenticado(authentication);</span>
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">        if (usuarioOpt.isEmpty()) {</span>
+<span class="nc" id="L85">            return errorUsuarioNoEncontrado(request);</span>
         }
         // La tarea SIEMPRE se crea a nombre del usuario autenticado,
         // sin importar que el cliente envie otro id_usuario en el body.
-<span class="fc" id="L87">        tarea.setUsuario(usuarioOpt.get());</span>
+<span class="fc" id="L89">        tarea.setUsuario(usuarioOpt.get());</span>
         // El folio de seguimiento SIEMPRE se genera en el servidor (Bloque
         // A.2 — generación de códigos secuenciales), nunca se acepta uno
         // enviado por el cliente en el body.
-<span class="fc" id="L91">        tarea.setCodigo(tareaRepository.spGenerarCodigoTarea());</span>
-<span class="fc" id="L92">        return ResponseEntity.ok(tareaRepository.save(tarea));</span>
+<span class="fc" id="L93">        tarea.setCodigo(tareaRepository.spGenerarCodigoTarea());</span>
+<span class="fc" id="L94">        return ResponseEntity.ok(tareaRepository.save(tarea));</span>
     }
 
+    @Auditado
     @PutMapping(&quot;/{id}&quot;)
     public ResponseEntity&lt;?&gt; actualizar(Authentication authentication, HttpServletRequest request, @PathVariable Integer id, @RequestBody Tarea tarea) {
-<span class="fc" id="L97">        Optional&lt;Usuario&gt; usuarioOpt = resolverUsuarioAutenticado(authentication);</span>
-<span class="pc bpc" id="L98" title="1 of 2 branches missed.">        if (usuarioOpt.isEmpty()) {</span>
-<span class="nc" id="L99">            return errorUsuarioNoEncontrado(request);</span>
+<span class="fc" id="L100">        Optional&lt;Usuario&gt; usuarioOpt = resolverUsuarioAutenticado(authentication);</span>
+<span class="pc bpc" id="L101" title="1 of 2 branches missed.">        if (usuarioOpt.isEmpty()) {</span>
+<span class="nc" id="L102">            return errorUsuarioNoEncontrado(request);</span>
         }
-<span class="fc" id="L101">        Optional&lt;Tarea&gt; tareaOpt = tareaRepository.findById(id);</span>
-<span class="pc bpc" id="L102" title="1 of 2 branches missed.">        if (tareaOpt.isEmpty()) {</span>
-<span class="nc" id="L103">            return errorTareaNoEncontrada(request, id);</span>
+<span class="fc" id="L104">        Optional&lt;Tarea&gt; tareaOpt = tareaRepository.findById(id);</span>
+<span class="pc bpc" id="L105" title="1 of 2 branches missed.">        if (tareaOpt.isEmpty()) {</span>
+<span class="nc" id="L106">            return errorTareaNoEncontrada(request, id);</span>
         }
-<span class="fc bfc" id="L105" title="All 2 branches covered.">        if (!perteneceAlUsuario(tareaOpt.get(), usuarioOpt.get())) {</span>
-<span class="fc" id="L106">            return errorSinPermiso(request, &quot;editar&quot;);</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">        if (!perteneceAlUsuario(tareaOpt.get(), usuarioOpt.get())) {</span>
+<span class="fc" id="L109">            return errorSinPermiso(request, &quot;editar&quot;);</span>
         }
-<span class="fc" id="L108">        Tarea t = tareaOpt.get();</span>
-<span class="fc" id="L109">        t.setTitulo(tarea.getTitulo());</span>
-<span class="fc" id="L110">        t.setDescripcion(tarea.getDescripcion());</span>
-<span class="fc" id="L111">        t.setFechaEntrega(tarea.getFechaEntrega());</span>
-<span class="fc" id="L112">        return ResponseEntity.ok(tareaRepository.save(t));</span>
+<span class="fc" id="L111">        Tarea t = tareaOpt.get();</span>
+<span class="fc" id="L112">        t.setTitulo(tarea.getTitulo());</span>
+<span class="fc" id="L113">        t.setDescripcion(tarea.getDescripcion());</span>
+<span class="fc" id="L114">        t.setFechaEntrega(tarea.getFechaEntrega());</span>
+<span class="fc" id="L115">        return ResponseEntity.ok(tareaRepository.save(t));</span>
     }
 
+    @Auditado
     @DeleteMapping(&quot;/{id}&quot;)
     public ResponseEntity&lt;?&gt; eliminar(Authentication authentication, HttpServletRequest request, @PathVariable Integer id) {
-<span class="fc" id="L117">        Optional&lt;Usuario&gt; usuarioOpt = resolverUsuarioAutenticado(authentication);</span>
-<span class="pc bpc" id="L118" title="1 of 2 branches missed.">        if (usuarioOpt.isEmpty()) {</span>
-<span class="nc" id="L119">            return errorUsuarioNoEncontrado(request);</span>
+<span class="fc" id="L121">        Optional&lt;Usuario&gt; usuarioOpt = resolverUsuarioAutenticado(authentication);</span>
+<span class="pc bpc" id="L122" title="1 of 2 branches missed.">        if (usuarioOpt.isEmpty()) {</span>
+<span class="nc" id="L123">            return errorUsuarioNoEncontrado(request);</span>
         }
-<span class="fc" id="L121">        Optional&lt;Tarea&gt; tareaOpt = tareaRepository.findById(id);</span>
-<span class="pc bpc" id="L122" title="1 of 2 branches missed.">        if (tareaOpt.isEmpty()) {</span>
-<span class="nc" id="L123">            return errorTareaNoEncontrada(request, id);</span>
+<span class="fc" id="L125">        Optional&lt;Tarea&gt; tareaOpt = tareaRepository.findById(id);</span>
+<span class="pc bpc" id="L126" title="1 of 2 branches missed.">        if (tareaOpt.isEmpty()) {</span>
+<span class="nc" id="L127">            return errorTareaNoEncontrada(request, id);</span>
         }
-<span class="pc bpc" id="L125" title="1 of 2 branches missed.">        if (!perteneceAlUsuario(tareaOpt.get(), usuarioOpt.get())) {</span>
-<span class="fc" id="L126">            return errorSinPermiso(request, &quot;eliminar&quot;);</span>
+<span class="pc bpc" id="L129" title="1 of 2 branches missed.">        if (!perteneceAlUsuario(tareaOpt.get(), usuarioOpt.get())) {</span>
+<span class="fc" id="L130">            return errorSinPermiso(request, &quot;eliminar&quot;);</span>
         }
-<span class="nc" id="L128">        tareaRepository.delete(tareaOpt.get());</span>
-<span class="nc" id="L129">        return ResponseEntity.ok().build();</span>
+<span class="nc" id="L132">        tareaRepository.delete(tareaOpt.get());</span>
+<span class="nc" id="L133">        return ResponseEntity.ok().build();</span>
     }
 
     private boolean perteneceAlUsuario(Tarea tarea, Usuario usuario) {
-<span class="pc bpc" id="L133" title="1 of 2 branches missed.">        return tarea.getUsuario() != null</span>
-<span class="fc bfc" id="L134" title="All 2 branches covered.">                &amp;&amp; tarea.getUsuario().getIdUsuario().equals(usuario.getIdUsuario());</span>
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">        return tarea.getUsuario() != null</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">                &amp;&amp; tarea.getUsuario().getIdUsuario().equals(usuario.getIdUsuario());</span>
     }
 
     private Optional&lt;Usuario&gt; resolverUsuarioAutenticado(Authentication authentication) {
-<span class="fc" id="L138">        return usuarioService.buscarPorEmail(authentication.getName());</span>
+<span class="fc" id="L142">        return usuarioService.buscarPorEmail(authentication.getName());</span>
     }
 
     private ResponseEntity&lt;ProblemDetail&gt; errorUsuarioNoEncontrado(HttpServletRequest request) {
-<span class="nc" id="L142">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+<span class="nc" id="L146">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
                 HttpStatus.NOT_FOUND, &quot;El usuario del token no existe en el sistema.&quot;);
-<span class="nc" id="L144">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/usuario-no-encontrado&quot;));</span>
-<span class="nc" id="L145">        problema.setTitle(&quot;Usuario no encontrado&quot;);</span>
-<span class="nc" id="L146">        problema.setInstance(URI.create(request.getRequestURI()));</span>
-<span class="nc" id="L147">        return ResponseEntity.status(HttpStatus.NOT_FOUND)</span>
-<span class="nc" id="L148">                .contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
+<span class="nc" id="L148">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/usuario-no-encontrado&quot;));</span>
+<span class="nc" id="L149">        problema.setTitle(&quot;Usuario no encontrado&quot;);</span>
+<span class="nc" id="L150">        problema.setInstance(URI.create(request.getRequestURI()));</span>
+<span class="nc" id="L151">        return ResponseEntity.status(HttpStatus.NOT_FOUND)</span>
+<span class="nc" id="L152">                .contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
     }
 
     private ResponseEntity&lt;ProblemDetail&gt; errorTareaNoEncontrada(HttpServletRequest request, Integer id) {
-<span class="fc" id="L152">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+<span class="fc" id="L156">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
                 HttpStatus.NOT_FOUND, &quot;No existe una tarea con id &quot; + id + &quot;.&quot;);
-<span class="fc" id="L154">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/tarea-no-encontrada&quot;));</span>
-<span class="fc" id="L155">        problema.setTitle(&quot;Tarea no encontrada&quot;);</span>
-<span class="fc" id="L156">        problema.setInstance(URI.create(request.getRequestURI()));</span>
-<span class="fc" id="L157">        return ResponseEntity.status(HttpStatus.NOT_FOUND)</span>
-<span class="fc" id="L158">                .contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
+<span class="fc" id="L158">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/tarea-no-encontrada&quot;));</span>
+<span class="fc" id="L159">        problema.setTitle(&quot;Tarea no encontrada&quot;);</span>
+<span class="fc" id="L160">        problema.setInstance(URI.create(request.getRequestURI()));</span>
+<span class="fc" id="L161">        return ResponseEntity.status(HttpStatus.NOT_FOUND)</span>
+<span class="fc" id="L162">                .contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
     }
 
     private ResponseEntity&lt;ProblemDetail&gt; errorSinPermiso(HttpServletRequest request, String accion) {
-<span class="fc" id="L162">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+<span class="fc" id="L166">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
                 HttpStatus.FORBIDDEN, &quot;No tienes permiso para &quot; + accion + &quot; esta tarea.&quot;);
-<span class="fc" id="L164">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/sin-permiso&quot;));</span>
-<span class="fc" id="L165">        problema.setTitle(&quot;Acceso prohibido&quot;);</span>
-<span class="fc" id="L166">        problema.setInstance(URI.create(request.getRequestURI()));</span>
-<span class="fc" id="L167">        return ResponseEntity.status(HttpStatus.FORBIDDEN)</span>
-<span class="fc" id="L168">                .contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
+<span class="fc" id="L168">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/sin-permiso&quot;));</span>
+<span class="fc" id="L169">        problema.setTitle(&quot;Acceso prohibido&quot;);</span>
+<span class="fc" id="L170">        problema.setInstance(URI.create(request.getRequestURI()));</span>
+<span class="fc" id="L171">        return ResponseEntity.status(HttpStatus.FORBIDDEN)</span>
+<span class="fc" id="L172">                .contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

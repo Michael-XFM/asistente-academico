@@ -1,5 +1,6 @@
 package com.uteq.asistente_academico.controller;
 
+import com.uteq.asistente_academico.audit.Auditado;
 import com.uteq.asistente_academico.entity.Tarea;
 import com.uteq.asistente_academico.repository.TareaRepository;
 import com.uteq.asistente_academico.repository.UsuarioRepository;
@@ -66,6 +67,7 @@ public class AdminController {
      * de dejar que se escape como 500 generico.
      */
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditado
     @DeleteMapping("/usuarios/{id}")
     public ResponseEntity<?> eliminarUsuario(HttpServletRequest request, @PathVariable Integer id) {
         if (!usuarioRepository.existsById(id)) {

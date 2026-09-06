@@ -1,5 +1,6 @@
 package com.uteq.asistente_academico.controller;
 
+import com.uteq.asistente_academico.audit.Auditado;
 import com.uteq.asistente_academico.entity.*;
 import com.uteq.asistente_academico.repository.*;
 import com.uteq.asistente_academico.service.UsuarioService;
@@ -142,6 +143,7 @@ public class ProfesorController {
      * TareaController.crear() (mismo sp_generar_codigo_tarea).
      */
     @PreAuthorize("hasRole('PROFESOR')")
+    @Auditado
     @PostMapping("/tareas")
     public ResponseEntity<?> crearTarea(Authentication authentication, HttpServletRequest request, @RequestBody CrearTareaRequest datos) {
         Usuario profesor = resolverProfesor(authentication);
@@ -184,6 +186,7 @@ public class ProfesorController {
      * durante la segunda pasada (guardado), se revierte todo.
      */
     @PreAuthorize("hasRole('PROFESOR')")
+    @Auditado
     @Transactional
     @PostMapping("/tareas/masiva")
     public ResponseEntity<?> crearTareaMasiva(Authentication authentication, HttpServletRequest request, @RequestBody CrearTareaMasivaRequest datos) {
@@ -236,6 +239,7 @@ public class ProfesorController {
      * es suya).
      */
     @PreAuthorize("hasRole('PROFESOR')")
+    @Auditado
     @PutMapping("/tareas/{id}")
     public ResponseEntity<?> actualizarTarea(Authentication authentication, HttpServletRequest request, @PathVariable Integer id, @RequestBody ActualizarTareaRequest datos) {
         Usuario profesor = resolverProfesor(authentication);
@@ -301,6 +305,7 @@ public class ProfesorController {
      * materia propia.
      */
     @PreAuthorize("hasRole('PROFESOR')")
+    @Auditado
     @PostMapping("/calificaciones")
     public ResponseEntity<?> crearCalificacion(Authentication authentication, HttpServletRequest request, @RequestBody CrearCalificacionRequest datos) {
         Usuario profesor = resolverProfesor(authentication);

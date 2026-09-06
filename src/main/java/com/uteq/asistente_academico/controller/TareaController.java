@@ -1,5 +1,6 @@
 package com.uteq.asistente_academico.controller;
 
+import com.uteq.asistente_academico.audit.Auditado;
 import com.uteq.asistente_academico.entity.Tarea;
 import com.uteq.asistente_academico.entity.Usuario;
 import com.uteq.asistente_academico.repository.TareaRepository;
@@ -76,6 +77,7 @@ public class TareaController {
         return ResponseEntity.ok(tareaOpt.get());
     }
 
+    @Auditado
     @PostMapping
     public ResponseEntity<?> crear(Authentication authentication, HttpServletRequest request, @RequestBody Tarea tarea) {
         Optional<Usuario> usuarioOpt = resolverUsuarioAutenticado(authentication);
@@ -92,6 +94,7 @@ public class TareaController {
         return ResponseEntity.ok(tareaRepository.save(tarea));
     }
 
+    @Auditado
     @PutMapping("/{id}")
     public ResponseEntity<?> actualizar(Authentication authentication, HttpServletRequest request, @PathVariable Integer id, @RequestBody Tarea tarea) {
         Optional<Usuario> usuarioOpt = resolverUsuarioAutenticado(authentication);
@@ -112,6 +115,7 @@ public class TareaController {
         return ResponseEntity.ok(tareaRepository.save(t));
     }
 
+    @Auditado
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminar(Authentication authentication, HttpServletRequest request, @PathVariable Integer id) {
         Optional<Usuario> usuarioOpt = resolverUsuarioAutenticado(authentication);

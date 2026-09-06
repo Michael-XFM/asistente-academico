@@ -1,0 +1,11 @@
+-- db/auditoria.sql
+-- Se ejecuta como 10-auditoria.sql, DESPUES de 09-roles.sql: contiene
+-- unicamente el REVOKE sobre app_academico, porque ese rol recien existe
+-- a partir de 09-roles.sql. La tabla/funcion/triggers de auditoria en si
+-- ya se crean en 01-schema.sql (db/schema.sql), que no depende del rol.
+--
+-- app_academico hereda SELECT/INSERT/UPDATE/DELETE automaticamente por
+-- el ALTER DEFAULT PRIVILEGES ya existente (db/roles.sql) -- se le quita
+-- todo menos INSERT explicitamente. El trigger de auditoria en si no
+-- depende de esto: corre como postgres via SECURITY DEFINER.
+REVOKE SELECT, UPDATE, DELETE ON auditoria FROM app_academico;

@@ -27,6 +27,10 @@ services:
       # Corre ultimo para que el GRANT ON ALL TABLES ya encuentre todas las
       # tablas creadas por 01-schema.sql. Ver db/roles.sql.
       - ./db/roles.sql:/docker-entrypoint-initdb.d/09-roles.sql:ro
+      # Solo el REVOKE sobre app_academico (necesita que el rol ya
+      # exista, ver db/auditoria.sql). La tabla/funcion/triggers de
+      # auditoria se crean antes, en 01-schema.sql.
+      - ./db/auditoria.sql:/docker-entrypoint-initdb.d/10-auditoria.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
