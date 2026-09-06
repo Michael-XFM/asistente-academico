@@ -24,4 +24,19 @@ public class RestTemplateConfig {
                 .readTimeout(Duration.ofSeconds(5))
                 .build();
     }
+
+    /**
+     * RestTemplate separado para el chatbot (ChatbotService/Gemini): un
+     * LLM tarda bastante mas en responder que la API REST simple de
+     * feriados -- reusar el bean de arriba (5s de lectura) haria que
+     * timeoutee con respuestas normales. Bean con nombre propio para
+     * poder inyectar el correcto con @Qualifier en cada service.
+     */
+    @Bean
+    public RestTemplate geminiRestTemplate(RestTemplateBuilder builder) {
+        return builder
+                .connectTimeout(Duration.ofSeconds(5))
+                .readTimeout(Duration.ofSeconds(30))
+                .build();
+    }
 }

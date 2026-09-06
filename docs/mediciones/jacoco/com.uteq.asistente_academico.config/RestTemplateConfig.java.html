@@ -24,5 +24,20 @@ import java.time.Duration;
 <span class="fc" id="L24">                .readTimeout(Duration.ofSeconds(5))</span>
 <span class="fc" id="L25">                .build();</span>
     }
+
+    /**
+     * RestTemplate separado para el chatbot (ChatbotService/Gemini): un
+     * LLM tarda bastante mas en responder que la API REST simple de
+     * feriados -- reusar el bean de arriba (5s de lectura) haria que
+     * timeoutee con respuestas normales. Bean con nombre propio para
+     * poder inyectar el correcto con @Qualifier en cada service.
+     */
+    @Bean
+    public RestTemplate geminiRestTemplate(RestTemplateBuilder builder) {
+<span class="fc" id="L37">        return builder</span>
+<span class="fc" id="L38">                .connectTimeout(Duration.ofSeconds(5))</span>
+<span class="fc" id="L39">                .readTimeout(Duration.ofSeconds(30))</span>
+<span class="fc" id="L40">                .build();</span>
+    }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -58,6 +58,12 @@ services:
       # mount al repo) para que no queden versionados ni mezclados con el
       # codigo fuente -- ver entregas_data mas abajo.
       ENTREGAS_STORAGE_PATH: /app/entregas
+      # Clave real en .env (gitignored), NUNCA en este archivo ni en el
+      # codigo. Sin valor por defecto: si falta en .env, docker-compose la
+      # sustituye por string vacio y gemini.api.key=${GEMINI_API_KEY:}
+      # en application.properties cae en ese mismo vacio -- ChatbotService
+      # lo detecta y responde 503 en vez de fallar al arrancar.
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
     volumes:
       - entregas_data:/app/entregas
     depends_on:
