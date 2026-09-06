@@ -54,6 +54,12 @@ services:
       # El esquema ya lo aplica Postgres via docker-entrypoint-initdb.d;
       # Flyway solo valida que coincide, nunca lo crea (ddl-auto=validate).
       SPRING_FLYWAY_ENABLED: "false"
+      # Archivos de entrega subidos por estudiantes. Named volume (no bind
+      # mount al repo) para que no queden versionados ni mezclados con el
+      # codigo fuente -- ver entregas_data mas abajo.
+      ENTREGAS_STORAGE_PATH: /app/entregas
+    volumes:
+      - entregas_data:/app/entregas
     depends_on:
       postgres:
         condition: service_healthy
@@ -72,3 +78,4 @@ services:
 
 volumes:
   postgres_data:
+  entregas_data:

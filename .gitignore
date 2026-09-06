@@ -33,5 +33,8 @@ build/
 .vscode/
 .env
 
+### Entregas (subida de archivos, desarrollo local sin Docker) ###
+/entregas/
+
 
 

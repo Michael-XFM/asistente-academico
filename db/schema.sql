@@ -57,6 +57,25 @@ CREATE TABLE tareas (
                         hora_limite   TIME NOT NULL DEFAULT '23:59:59'
 );
 
+-- Archivo que un estudiante sube para una tarea, con su calificacion y
+-- comentario del profesor una vez revisada. UNIQUE (id_tarea,
+-- id_estudiante): una sola entrega por estudiante por tarea (volver a
+-- subir es una actualizacion de esa misma fila, no una fila nueva).
+CREATE TABLE entrega (
+    id_entrega          SERIAL PRIMARY KEY,
+    id_tarea            INTEGER NOT NULL REFERENCES tareas(id_tarea),
+    id_estudiante       INTEGER NOT NULL REFERENCES usuarios(id_usuario),
+    nombre_archivo      VARCHAR(255) NOT NULL,
+    ruta_archivo        VARCHAR(500) NOT NULL,
+    formato             VARCHAR(10)  NOT NULL,
+    tamano_bytes        BIGINT       NOT NULL,
+    fecha_envio         TIMESTAMP    NOT NULL DEFAULT now(),
+    calificacion        NUMERIC(4,2),
+    comentario_prof     TEXT,
+    fecha_calificacion  TIMESTAMP,
+    UNIQUE (id_tarea, id_estudiante)
+);
+
 CREATE TABLE calificaciones (
                                 id_calificacion  SERIAL PRIMARY KEY,
                                 id_usuario       INTEGER NOT NULL REFERENCES usuarios(id_usuario),
