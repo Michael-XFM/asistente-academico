@@ -128,6 +128,24 @@
             cursor: pointer; color: var(--blue-academic); flex-shrink: 0; display: flex;
         }
         .tarea-edit-btn:hover { border-color: var(--blue-active); }
+        .tarea-row-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+        /* ---------- Modal de revisar entregas ---------- */
+        .entrega-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; border-bottom: 1px solid var(--line); padding: 12px 0; }
+        .entrega-row:last-child { border-bottom: none; }
+        .entrega-row-main { flex: 1; min-width: 0; }
+        .entrega-nombre { font-weight: 700; font-size: 13.5px; margin-bottom: 2px; }
+        .entrega-estado { font-size: 12px; color: var(--muted); }
+        .entrega-estado.no-entrego { color: var(--alert); }
+        .entrega-calificacion { font-size: 12.5px; color: var(--green); font-weight: 600; margin-top: 4px; }
+        .entrega-actions { display: flex; gap: 6px; flex-shrink: 0; }
+        .entrega-actions button {
+            background: none; border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px;
+            font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: var(--blue-academic); cursor: pointer;
+        }
+        .entrega-actions button:hover { border-color: var(--blue-active); background: var(--soft-blue); }
+        .entrega-calificar-panel { display: none; margin-top: 10px; padding: 12px; background: var(--bg); border-radius: 10px; }
+        .entrega-calificar-panel.show { display: block; }
 
         /* ---------- Checkboxes de estudiantes (crear tarea masiva) ---------- */
         .checkbox-list {
@@ -145,6 +163,7 @@
         }
         .modal-overlay.open { display: flex; }
         .modal-card { background: var(--card); border-radius: 16px; padding: 26px; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(6,43,87,0.3); }
+        .modal-card.ancho { max-width: 640px; max-height: 82vh; overflow-y: auto; }
         .modal-card h3 { font-family: 'Fraunces', serif; margin: 0 0 16px; color: var(--navy); }
         .modal-actions { display: flex; gap: 10px; }
         .modal-actions .btn-primary, .modal-actions .btn-secondary { flex: 1; width: auto; }
@@ -318,6 +337,19 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="modalEntregasOverlay">
+    <div class="modal-card ancho">
+        <h3 id="entregasModalTitulo">Entregas</h3>
+        <div class="form-msg" id="msgEntregas"></div>
+        <div id="entregasListaBox">
+            <div class="loading-note">Cargando…</div>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn-secondary" onclick="cerrarModalEntregas()">Cerrar</button>
+        </div>
+    </div>
+</div>
+
 <script>
     const token = localStorage.getItem('token');
     const nombre = localStorage.getItem('nombre');
@@ -483,9 +515,14 @@
                         ' <span class="badge-vigencia ' + (vencida ? 'vencida' : 'vigente') + '">' + (vencida ? 'Vencida' : 'Vigente') + '</span>' +
                     '</div>' +
                 '</div>' +
-                '<button type="button" class="tarea-edit-btn" title="Editar" onclick="abrirModalEditar(' + t.idTarea + ')">' +
-                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' +
-                '</button>' +
+                '<div class="tarea-row-actions">' +
+                    '<button type="button" class="tarea-edit-btn" title="Editar" onclick="abrirModalEditar(' + t.idTarea + ')">' +
+                        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' +
+                    '</button>' +
+                    '<button type="button" class="tarea-edit-btn" title="Revisar entregas" onclick="abrirModalEntregas(' + t.idTarea + ')">' +
+                        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15l2 2 4-4"/></svg>' +
+                    '</button>' +
+                '</div>' +
             '</div>';
         }).join('');
     }
@@ -639,6 +676,156 @@
             mostrarMensaje('msgNota', e.message, 'error');
         }
         return false;
+    }
+
+    // ---------- Revisar entregas y calificar ----------
+    let entregasCache = [];
+    let tareaEntregasActual = null;
+
+    function formatearFechaHora(iso) {
+        if (!iso) return '';
+        return iso.slice(0, 10) + ' ' + iso.slice(11, 16);
+    }
+
+    async function abrirModalEntregas(idTarea) {
+        const t = tareasCache.find(function (x) { return x.idTarea === idTarea; });
+        if (!t) return;
+        tareaEntregasActual = idTarea;
+
+        document.getElementById('msgEntregas').className = 'form-msg';
+        document.getElementById('entregasModalTitulo').textContent = 'Entregas — ' + t.titulo;
+        document.getElementById('entregasListaBox').innerHTML = '<div class="loading-note">Cargando…</div>';
+        document.getElementById('modalEntregasOverlay').classList.add('open');
+
+        try {
+            const resp = await fetch('https://localhost:8443/api/tareas/' + idTarea + '/entregas', { headers: headers() });
+            if (manejarSesionInvalida(resp.status)) return;
+            if (!resp.ok) throw new Error();
+            entregasCache = await resp.json();
+            renderizarEntregas();
+        } catch (e) {
+            document.getElementById('entregasListaBox').innerHTML = '<div class="error-note">No se pudieron cargar las entregas.</div>';
+        }
+    }
+
+    function cerrarModalEntregas() {
+        document.getElementById('modalEntregasOverlay').classList.remove('open');
+        tareaEntregasActual = null;
+        entregasCache = [];
+    }
+
+    function renderizarEntregas() {
+        const box = document.getElementById('entregasListaBox');
+        if (!entregasCache.length) {
+            box.innerHTML = '<div class="empty-note">No hay estudiantes matriculados en esta materia.</div>';
+            return;
+        }
+        box.innerHTML = entregasCache.map(function (e) {
+            const calificada = e.calificacion != null;
+            const estadoHtml = e.entrego
+                ? 'Entregó <strong>' + escapeHtml(e.nombreArchivo) + '</strong> · ' + formatearFechaHora(e.fechaEnvio)
+                : 'No ha entregado';
+            const calificacionHtml = calificada
+                ? '<div class="entrega-calificacion">Calificación: ' + e.calificacion + ' / 10' +
+                    (e.comentarioProf ? ' — ' + escapeHtml(e.comentarioProf) : '') + '</div>'
+                : '';
+
+            let botones = '';
+            let panelCalificar = '';
+            if (e.entrego) {
+                botones +=
+                    '<button type="button" onclick="descargarEntrega(' + e.idEntrega + ')">Descargar</button>' +
+                    '<button type="button" onclick="toggleCalificarPanel(' + e.idEntrega + ')">' +
+                        (calificada ? 'Editar calificación' : 'Calificar') +
+                    '</button>';
+
+                // El valor de la calificación es siempre numérico (BigDecimal
+                // del backend, nunca texto libre) -- seguro de interpolar
+                // directo en el atributo value. El comentario SÍ es texto
+                // libre del profesor, va escapado dentro del textarea.
+                panelCalificar =
+                    '<div class="entrega-calificar-panel" id="calPanel-' + e.idEntrega + '">' +
+                        '<div class="field"><label>Calificación (0 a 10)</label>' +
+                            '<input type="number" min="0" max="10" step="0.01" id="calNota-' + e.idEntrega + '" value="' + (calificada ? e.calificacion : '') + '"></div>' +
+                        '<div class="field"><label>Comentario</label>' +
+                            '<textarea id="calComentario-' + e.idEntrega + '">' + (calificada ? escapeHtml(e.comentarioProf || '') : '') + '</textarea></div>' +
+                        '<div class="form-msg" id="calMsg-' + e.idEntrega + '"></div>' +
+                        '<button type="button" class="btn-primary" style="width:auto;" onclick="guardarCalificacion(' + e.idEntrega + ')">Guardar</button>' +
+                    '</div>';
+            }
+
+            return '' +
+            '<div class="entrega-row">' +
+                '<div class="entrega-row-main">' +
+                    '<div class="entrega-nombre">' + escapeHtml(e.nombreEstudiante) + '</div>' +
+                    '<div class="entrega-estado' + (e.entrego ? '' : ' no-entrego') + '">' + estadoHtml + '</div>' +
+                    calificacionHtml +
+                    panelCalificar +
+                '</div>' +
+                '<div class="entrega-actions">' + botones + '</div>' +
+            '</div>';
+        }).join('');
+    }
+
+    function toggleCalificarPanel(idEntrega) {
+        const panel = document.getElementById('calPanel-' + idEntrega);
+        if (panel) panel.classList.toggle('show');
+    }
+
+    // Descarga autenticada: un <a href> comun no puede mandar el header
+    // Authorization, asi que se trae el archivo con fetch()+headers() y se
+    // dispara la descarga desde un blob temporal.
+    async function descargarEntrega(idEntrega) {
+        const entrega = entregasCache.find(function (x) { return x.idEntrega === idEntrega; });
+        const nombreArchivo = entrega ? entrega.nombreArchivo : 'archivo';
+        try {
+            const resp = await fetch('https://localhost:8443/api/entregas/' + idEntrega + '/archivo', { headers: headers() });
+            if (manejarSesionInvalida(resp.status)) return;
+            if (!resp.ok) throw new Error();
+            const blob = await resp.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = nombreArchivo;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (e) {
+            alert('No se pudo descargar el archivo.');
+        }
+    }
+
+    async function guardarCalificacion(idEntrega) {
+        const nota = document.getElementById('calNota-' + idEntrega).value;
+        const comentario = document.getElementById('calComentario-' + idEntrega).value.trim();
+        const msgBox = document.getElementById('calMsg-' + idEntrega);
+        msgBox.className = 'form-msg';
+
+        if (nota === '') {
+            msgBox.textContent = 'Ingresá una calificación.';
+            msgBox.className = 'form-msg show error';
+            return;
+        }
+
+        try {
+            const resp = await fetch('https://localhost:8443/api/entregas/' + idEntrega + '/calificacion', {
+                method: 'PUT',
+                headers: Object.assign({ 'Content-Type': 'application/json' }, headers()),
+                body: JSON.stringify({ calificacion: parseFloat(nota), comentarioProf: comentario })
+            });
+            if (manejarSesionInvalida(resp.status)) return;
+            const datos = await resp.json().catch(function () { return null; });
+            if (!resp.ok) throw new Error(datos && datos.detail ? datos.detail : 'No se pudo guardar la calificación.');
+
+            // Recarga la lista completa: mas simple y seguro que actualizar
+            // solo esta fila, y ya es el mismo criterio que usa
+            // guardarEdicionTarea() con cargarTareasDeMateria().
+            await abrirModalEntregas(tareaEntregasActual);
+        } catch (e) {
+            msgBox.textContent = e.message;
+            msgBox.className = 'form-msg show error';
+        }
     }
 
     function cerrarSesion() {

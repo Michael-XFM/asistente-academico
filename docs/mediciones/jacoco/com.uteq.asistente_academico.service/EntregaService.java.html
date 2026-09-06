@@ -95,27 +95,33 @@ import java.util.stream.Collectors;
 <span class="fc" id="L95">        Optional&lt;Entrega&gt; existenteOpt = entregaRepository</span>
 <span class="fc" id="L96">                .findByTarea_IdTareaAndEstudiante_IdUsuario(idTarea, estudiante.getIdUsuario());</span>
 
+<span class="fc bfc" id="L98" title="All 4 branches covered.">        if (existenteOpt.isPresent() &amp;&amp; existenteOpt.get().getCalificacion() != null) {</span>
+<span class="fc" id="L99">            throw new EntregaException(HttpStatus.CONFLICT, &quot;entrega-ya-calificada&quot;,</span>
+                    &quot;Entrega ya calificada&quot;,
+                    &quot;Esta entrega ya fue calificada y no se puede reemplazar. Contactá a tu profesor si necesitás corregirla.&quot;);
+        }
+
         // Se escribe el archivo nuevo ANTES de borrar el viejo o tocar la
         // fila: si algo falla al guardar en disco, la entrega anterior
         // (fila + archivo fisico) queda intacta en vez de perderse.
-<span class="fc" id="L101">        String rutaNueva = guardarArchivoFisico(archivo, idTarea, estudiante.getIdUsuario(), extension);</span>
+<span class="fc" id="L107">        String rutaNueva = guardarArchivoFisico(archivo, idTarea, estudiante.getIdUsuario(), extension);</span>
 
         Entrega entrega;
-<span class="fc bfc" id="L104" title="All 2 branches covered.">        if (existenteOpt.isPresent()) {</span>
-<span class="fc" id="L105">            entrega = existenteOpt.get();</span>
-<span class="fc" id="L106">            borrarArchivoFisico(entrega.getRutaArchivo());</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">        if (existenteOpt.isPresent()) {</span>
+<span class="fc" id="L111">            entrega = existenteOpt.get();</span>
+<span class="fc" id="L112">            borrarArchivoFisico(entrega.getRutaArchivo());</span>
         } else {
-<span class="fc" id="L108">            entrega = new Entrega();</span>
-<span class="fc" id="L109">            entrega.setTarea(tarea);</span>
-<span class="fc" id="L110">            entrega.setEstudiante(estudiante);</span>
+<span class="fc" id="L114">            entrega = new Entrega();</span>
+<span class="fc" id="L115">            entrega.setTarea(tarea);</span>
+<span class="fc" id="L116">            entrega.setEstudiante(estudiante);</span>
         }
-<span class="fc" id="L112">        entrega.setNombreArchivo(archivo.getOriginalFilename());</span>
-<span class="fc" id="L113">        entrega.setRutaArchivo(rutaNueva);</span>
-<span class="fc" id="L114">        entrega.setFormato(extension);</span>
-<span class="fc" id="L115">        entrega.setTamanoBytes(archivo.getSize());</span>
-<span class="fc" id="L116">        entrega.setFechaEnvio(LocalDateTime.now());</span>
+<span class="fc" id="L118">        entrega.setNombreArchivo(archivo.getOriginalFilename());</span>
+<span class="fc" id="L119">        entrega.setRutaArchivo(rutaNueva);</span>
+<span class="fc" id="L120">        entrega.setFormato(extension);</span>
+<span class="fc" id="L121">        entrega.setTamanoBytes(archivo.getSize());</span>
+<span class="fc" id="L122">        entrega.setFechaEnvio(LocalDateTime.now());</span>
 
-<span class="fc" id="L118">        return entregaRepository.save(entrega);</span>
+<span class="fc" id="L124">        return entregaRepository.save(entrega);</span>
     }
 
     /**
@@ -124,25 +130,52 @@ import java.util.stream.Collectors;
      * profesor autenticado (no 404, mismo criterio que ProfesorController).
      */
     public List&lt;EstadoEntregaEstudiante&gt; listarPorTarea(Integer idTarea, Usuario profesor) {
-<span class="fc" id="L127">        Tarea tarea = tareaRepository.findById(idTarea)</span>
-<span class="pc" id="L128">                .orElseThrow(() -&gt; new EntregaException(HttpStatus.NOT_FOUND, &quot;tarea-no-encontrada&quot;,</span>
+<span class="fc" id="L133">        Tarea tarea = tareaRepository.findById(idTarea)</span>
+<span class="pc" id="L134">                .orElseThrow(() -&gt; new EntregaException(HttpStatus.NOT_FOUND, &quot;tarea-no-encontrada&quot;,</span>
                         &quot;Tarea no encontrada&quot;, &quot;No existe una tarea con id &quot; + idTarea + &quot;.&quot;));
 
-<span class="fc" id="L131">        validarMateriaPropia(tarea.getMateria(), profesor);</span>
+<span class="fc" id="L137">        validarMateriaPropia(tarea.getMateria(), profesor);</span>
 
-<span class="fc" id="L133">        List&lt;Matricula&gt; matriculados = matriculaRepository.findByMateria_IdMateria(tarea.getMateria().getIdMateria());</span>
+<span class="fc" id="L139">        List&lt;Matricula&gt; matriculados = matriculaRepository.findByMateria_IdMateria(tarea.getMateria().getIdMateria());</span>
 
-<span class="fc" id="L135">        return matriculados.stream()</span>
-<span class="fc" id="L136">                .map(Matricula::getUsuario)</span>
-<span class="fc" id="L137">                .map(est -&gt; entregaRepository.findByTarea_IdTareaAndEstudiante_IdUsuario(idTarea, est.getIdUsuario())</span>
-<span class="fc" id="L138">                        .map(e -&gt; new EstadoEntregaEstudiante(</span>
-<span class="fc" id="L139">                                est.getIdUsuario(), est.getNombre(), true,</span>
-<span class="fc" id="L140">                                e.getIdEntrega(), e.getNombreArchivo(), e.getFechaEnvio(),</span>
-<span class="fc" id="L141">                                e.getCalificacion(), e.getComentarioProf(), e.getFechaCalificacion()))</span>
-<span class="pc" id="L142">                        .orElseGet(() -&gt; new EstadoEntregaEstudiante(</span>
-<span class="nc" id="L143">                                est.getIdUsuario(), est.getNombre(), false,</span>
-                                null, null, null, null, null, null)))
-<span class="fc" id="L145">                .collect(Collectors.toList());</span>
+<span class="fc" id="L141">        return matriculados.stream()</span>
+<span class="fc" id="L142">                .map(Matricula::getUsuario)</span>
+<span class="fc" id="L143">                .map(est -&gt; mapAEstado(est, idTarea))</span>
+<span class="fc" id="L144">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Estado de entrega del estudiante autenticado (no de todos los
+     * matriculados) para una tarea puntual -- lo que necesita el propio
+     * estudiante para saber si ya entrego, con que archivo, y si ya lo
+     * calificaron, antes de decidir si subir o reemplazar. 403 si no esta
+     * matriculado (mismo mensaje que subir()), nunca 404 solo porque
+     * todavia no entrego: eso se representa con entrego=false, no con un
+     * error.
+     */
+    public EstadoEntregaEstudiante obtenerEstadoPropio(Integer idTarea, Usuario estudiante) {
+<span class="fc" id="L157">        Tarea tarea = tareaRepository.findById(idTarea)</span>
+<span class="fc" id="L158">                .orElseThrow(() -&gt; new EntregaException(HttpStatus.NOT_FOUND, &quot;tarea-no-encontrada&quot;,</span>
+                        &quot;Tarea no encontrada&quot;, &quot;No existe una tarea con id &quot; + idTarea + &quot;.&quot;));
+
+<span class="fc bfc" id="L161" title="All 2 branches covered.">        if (!matriculaRepository.existsByUsuario_IdUsuarioAndMateria_IdMateria(</span>
+<span class="fc" id="L162">                estudiante.getIdUsuario(), tarea.getMateria().getIdMateria())) {</span>
+<span class="fc" id="L163">            throw new EntregaException(HttpStatus.FORBIDDEN, &quot;no-matriculado&quot;,</span>
+                    &quot;Acceso prohibido&quot;, &quot;No estás matriculado en la materia de esta tarea.&quot;);
+        }
+
+<span class="fc" id="L167">        return mapAEstado(estudiante, idTarea);</span>
+    }
+
+    private EstadoEntregaEstudiante mapAEstado(Usuario estudiante, Integer idTarea) {
+<span class="fc" id="L171">        return entregaRepository.findByTarea_IdTareaAndEstudiante_IdUsuario(idTarea, estudiante.getIdUsuario())</span>
+<span class="fc" id="L172">                .map(e -&gt; new EstadoEntregaEstudiante(</span>
+<span class="fc" id="L173">                        estudiante.getIdUsuario(), estudiante.getNombre(), true,</span>
+<span class="fc" id="L174">                        e.getIdEntrega(), e.getNombreArchivo(), e.getFechaEnvio(),</span>
+<span class="fc" id="L175">                        e.getCalificacion(), e.getComentarioProf(), e.getFechaCalificacion()))</span>
+<span class="fc" id="L176">                .orElseGet(() -&gt; new EstadoEntregaEstudiante(</span>
+<span class="fc" id="L177">                        estudiante.getIdUsuario(), estudiante.getNombre(), false,</span>
+                        null, null, null, null, null, null));
     }
 
     /**
@@ -152,20 +185,20 @@ import java.util.stream.Collectors;
      * en el alcance pedido, asi que cae al 403 por defecto.
      */
     public Entrega obtenerParaDescarga(Integer idEntrega, Usuario usuario) {
-<span class="fc" id="L155">        Entrega entrega = entregaRepository.findById(idEntrega)</span>
-<span class="fc" id="L156">                .orElseThrow(() -&gt; new EntregaException(HttpStatus.NOT_FOUND, &quot;entrega-no-encontrada&quot;,</span>
+<span class="fc" id="L188">        Entrega entrega = entregaRepository.findById(idEntrega)</span>
+<span class="fc" id="L189">                .orElseThrow(() -&gt; new EntregaException(HttpStatus.NOT_FOUND, &quot;entrega-no-encontrada&quot;,</span>
                         &quot;Entrega no encontrada&quot;, &quot;No existe una entrega con id &quot; + idEntrega + &quot;.&quot;));
 
-<span class="fc" id="L159">        boolean esElEstudianteDueño = entrega.getEstudiante().getIdUsuario().equals(usuario.getIdUsuario());</span>
-<span class="fc" id="L160">        Usuario profesorDeLaMateria = entrega.getTarea().getMateria().getProfesor();</span>
-<span class="pc bpc" id="L161" title="1 of 2 branches missed.">        boolean esElProfesorDeLaMateria = profesorDeLaMateria != null</span>
-<span class="fc bfc" id="L162" title="All 2 branches covered.">                &amp;&amp; profesorDeLaMateria.getIdUsuario().equals(usuario.getIdUsuario());</span>
+<span class="fc" id="L192">        boolean esElEstudianteDueño = entrega.getEstudiante().getIdUsuario().equals(usuario.getIdUsuario());</span>
+<span class="fc" id="L193">        Usuario profesorDeLaMateria = entrega.getTarea().getMateria().getProfesor();</span>
+<span class="pc bpc" id="L194" title="1 of 2 branches missed.">        boolean esElProfesorDeLaMateria = profesorDeLaMateria != null</span>
+<span class="fc bfc" id="L195" title="All 2 branches covered.">                &amp;&amp; profesorDeLaMateria.getIdUsuario().equals(usuario.getIdUsuario());</span>
 
-<span class="fc bfc" id="L164" title="All 4 branches covered.">        if (!esElEstudianteDueño &amp;&amp; !esElProfesorDeLaMateria) {</span>
-<span class="fc" id="L165">            throw new EntregaException(HttpStatus.FORBIDDEN, &quot;sin-permiso&quot;,</span>
+<span class="fc bfc" id="L197" title="All 4 branches covered.">        if (!esElEstudianteDueño &amp;&amp; !esElProfesorDeLaMateria) {</span>
+<span class="fc" id="L198">            throw new EntregaException(HttpStatus.FORBIDDEN, &quot;sin-permiso&quot;,</span>
                     &quot;Acceso prohibido&quot;, &quot;No tienes permiso para descargar esta entrega.&quot;);
         }
-<span class="fc" id="L168">        return entrega;</span>
+<span class="fc" id="L201">        return entrega;</span>
     }
 
     /**
@@ -173,69 +206,69 @@ import java.util.stream.Collectors;
      * ya lo garantiza @PreAuthorize en el controlador).
      */
     public Entrega calificar(Integer idEntrega, Usuario profesor, BigDecimal calificacion, String comentarioProf) {
-<span class="fc" id="L176">        Entrega entrega = entregaRepository.findById(idEntrega)</span>
-<span class="pc" id="L177">                .orElseThrow(() -&gt; new EntregaException(HttpStatus.NOT_FOUND, &quot;entrega-no-encontrada&quot;,</span>
+<span class="fc" id="L209">        Entrega entrega = entregaRepository.findById(idEntrega)</span>
+<span class="pc" id="L210">                .orElseThrow(() -&gt; new EntregaException(HttpStatus.NOT_FOUND, &quot;entrega-no-encontrada&quot;,</span>
                         &quot;Entrega no encontrada&quot;, &quot;No existe una entrega con id &quot; + idEntrega + &quot;.&quot;));
 
-<span class="fc" id="L180">        validarMateriaPropia(entrega.getTarea().getMateria(), profesor);</span>
+<span class="fc" id="L213">        validarMateriaPropia(entrega.getTarea().getMateria(), profesor);</span>
 
-<span class="fc" id="L182">        entrega.setCalificacion(calificacion);</span>
-<span class="fc" id="L183">        entrega.setComentarioProf(comentarioProf);</span>
-<span class="fc" id="L184">        entrega.setFechaCalificacion(LocalDateTime.now());</span>
-<span class="fc" id="L185">        return entregaRepository.save(entrega);</span>
+<span class="fc" id="L215">        entrega.setCalificacion(calificacion);</span>
+<span class="fc" id="L216">        entrega.setComentarioProf(comentarioProf);</span>
+<span class="fc" id="L217">        entrega.setFechaCalificacion(LocalDateTime.now());</span>
+<span class="fc" id="L218">        return entregaRepository.save(entrega);</span>
     }
 
     // ---- helpers ----
 
     private void validarMateriaPropia(Materia materia, Usuario profesor) {
-<span class="pc bpc" id="L191" title="1 of 4 branches missed.">        if (materia.getProfesor() == null || !materia.getProfesor().getIdUsuario().equals(profesor.getIdUsuario())) {</span>
-<span class="fc" id="L192">            throw new EntregaException(HttpStatus.FORBIDDEN, &quot;materia-no-propia&quot;,</span>
-<span class="fc" id="L193">                    &quot;Acceso prohibido&quot;, &quot;La materia &quot; + materia.getIdMateria() + &quot; no existe o no la dictas.&quot;);</span>
+<span class="pc bpc" id="L224" title="1 of 4 branches missed.">        if (materia.getProfesor() == null || !materia.getProfesor().getIdUsuario().equals(profesor.getIdUsuario())) {</span>
+<span class="fc" id="L225">            throw new EntregaException(HttpStatus.FORBIDDEN, &quot;materia-no-propia&quot;,</span>
+<span class="fc" id="L226">                    &quot;Acceso prohibido&quot;, &quot;La materia &quot; + materia.getIdMateria() + &quot; no existe o no la dictas.&quot;);</span>
         }
-<span class="fc" id="L195">    }</span>
+<span class="fc" id="L228">    }</span>
 
     // Misma logica que segundosHastaLimite() en tareas.html/dashboard.html/
     // profesor.html (badge Vigente/Vencida): combina fecha_entrega +
     // hora_limite en un instante exacto y lo compara contra el momento
     // actual, para que &quot;vencida&quot; signifique lo mismo en el frontend y aca.
     private boolean estaVencida(Tarea tarea) {
-<span class="fc" id="L202">        LocalDateTime limite = LocalDateTime.of(tarea.getFechaEntrega(), tarea.getHoraLimite());</span>
-<span class="fc" id="L203">        return LocalDateTime.now().isAfter(limite);</span>
+<span class="fc" id="L235">        LocalDateTime limite = LocalDateTime.of(tarea.getFechaEntrega(), tarea.getHoraLimite());</span>
+<span class="fc" id="L236">        return LocalDateTime.now().isAfter(limite);</span>
     }
 
     private String obtenerExtension(String nombreArchivo) {
-<span class="pc bpc" id="L207" title="1 of 2 branches missed.">        if (nombreArchivo == null) {</span>
-<span class="nc" id="L208">            return &quot;&quot;;</span>
+<span class="pc bpc" id="L240" title="1 of 2 branches missed.">        if (nombreArchivo == null) {</span>
+<span class="nc" id="L241">            return &quot;&quot;;</span>
         }
-<span class="fc" id="L210">        int idx = nombreArchivo.lastIndexOf('.');</span>
-<span class="pc bpc" id="L211" title="2 of 4 branches missed.">        return idx &gt;= 0 &amp;&amp; idx &lt; nombreArchivo.length() - 1</span>
-<span class="fc" id="L212">                ? nombreArchivo.substring(idx + 1).toUpperCase()</span>
-<span class="nc" id="L213">                : &quot;&quot;;</span>
+<span class="fc" id="L243">        int idx = nombreArchivo.lastIndexOf('.');</span>
+<span class="pc bpc" id="L244" title="2 of 4 branches missed.">        return idx &gt;= 0 &amp;&amp; idx &lt; nombreArchivo.length() - 1</span>
+<span class="fc" id="L245">                ? nombreArchivo.substring(idx + 1).toUpperCase()</span>
+<span class="nc" id="L246">                : &quot;&quot;;</span>
     }
 
     private String guardarArchivoFisico(MultipartFile archivo, Integer idTarea, Integer idEstudiante, String extension) {
         try {
-<span class="fc" id="L218">            Path directorio = Paths.get(storagePath);</span>
-<span class="fc" id="L219">            Files.createDirectories(directorio);</span>
-<span class="fc" id="L220">            String nombreGenerado = &quot;entrega_&quot; + idTarea + &quot;_&quot; + idEstudiante + &quot;_&quot; + System.currentTimeMillis()</span>
-<span class="fc" id="L221">                    + &quot;.&quot; + extension.toLowerCase();</span>
-<span class="fc" id="L222">            Path destino = directorio.resolve(nombreGenerado);</span>
-<span class="fc" id="L223">            archivo.transferTo(destino);</span>
-<span class="fc" id="L224">            return destino.toString();</span>
-<span class="nc" id="L225">        } catch (IOException e) {</span>
-<span class="nc" id="L226">            throw new EntregaException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;error-almacenamiento&quot;,</span>
+<span class="fc" id="L251">            Path directorio = Paths.get(storagePath);</span>
+<span class="fc" id="L252">            Files.createDirectories(directorio);</span>
+<span class="fc" id="L253">            String nombreGenerado = &quot;entrega_&quot; + idTarea + &quot;_&quot; + idEstudiante + &quot;_&quot; + System.currentTimeMillis()</span>
+<span class="fc" id="L254">                    + &quot;.&quot; + extension.toLowerCase();</span>
+<span class="fc" id="L255">            Path destino = directorio.resolve(nombreGenerado);</span>
+<span class="fc" id="L256">            archivo.transferTo(destino);</span>
+<span class="fc" id="L257">            return destino.toString();</span>
+<span class="nc" id="L258">        } catch (IOException e) {</span>
+<span class="nc" id="L259">            throw new EntregaException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;error-almacenamiento&quot;,</span>
                     &quot;Error al guardar el archivo&quot;, &quot;No se pudo guardar el archivo en el servidor.&quot;);
         }
     }
 
     private void borrarArchivoFisico(String ruta) {
         try {
-<span class="fc" id="L233">            Files.deleteIfExists(Paths.get(ruta));</span>
-<span class="nc" id="L234">        } catch (IOException e) {</span>
+<span class="fc" id="L266">            Files.deleteIfExists(Paths.get(ruta));</span>
+<span class="nc" id="L267">        } catch (IOException e) {</span>
             // No se relanza: si el archivo viejo no se puede borrar (ya no
             // existe, permisos, etc.) no debe bloquear que la entrega nueva
             // quede guardada -- es un problema de limpieza, no de la subida.
-<span class="fc" id="L238">        }</span>
-<span class="fc" id="L239">    }</span>
+<span class="fc" id="L271">        }</span>
+<span class="fc" id="L272">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

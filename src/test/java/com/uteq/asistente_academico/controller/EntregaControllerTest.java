@@ -388,4 +388,72 @@ class EntregaControllerTest {
         Assertions.assertNull(entrega.getCalificacion(),
                 "El intento de calificar de un profesor ajeno no debe mutar la entrega");
     }
+
+    // ---------- Mi entrega (estado propio del estudiante) ----------
+
+    @Test
+    void miEntregaSinHaberSubidoNadaDevuelveEntregoFalse() throws Exception {
+        mockMvc.perform(get("/api/tareas/" + tareaVigente.getIdTarea() + "/mi-entrega")
+                        .header("Authorization", "Bearer " + tokenEstudianteMatriculado))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.entrego").value(false))
+                .andExpect(jsonPath("$.idEntrega").doesNotExist())
+                .andExpect(jsonPath("$.nombreArchivo").doesNotExist());
+    }
+
+    @Test
+    void miEntregaDespuesDeSubirDevuelveEntregoTrueConLosDatos() throws Exception {
+        Integer idEntrega = subirEntregaValidaYObtenerId(tokenEstudianteMatriculado, tareaVigente.getIdTarea());
+
+        mockMvc.perform(get("/api/tareas/" + tareaVigente.getIdTarea() + "/mi-entrega")
+                        .header("Authorization", "Bearer " + tokenEstudianteMatriculado))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.entrego").value(true))
+                .andExpect(jsonPath("$.idEntrega").value(idEntrega))
+                .andExpect(jsonPath("$.nombreArchivo").value("trabajo.pdf"))
+                .andExpect(jsonPath("$.calificacion").doesNotExist());
+    }
+
+    @Test
+    void miEntregaEstudianteNoMatriculadoDevuelve403() throws Exception {
+        mockMvc.perform(get("/api/tareas/" + tareaVigente.getIdTarea() + "/mi-entrega")
+                        .header("Authorization", "Bearer " + tokenEstudianteNoMatriculado))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void miEntregaTareaInexistenteDevuelve404() throws Exception {
+        mockMvc.perform(get("/api/tareas/999999/mi-entrega")
+                        .header("Authorization", "Bearer " + tokenEstudianteMatriculado))
+                .andExpect(status().isNotFound());
+    }
+
+    // ---------- Guardrail: no reemplazar una entrega ya calificada ----------
+
+    @Test
+    void reemplazarUnaEntregaYaCalificadaDevuelve409YNoMutaElArchivo() throws Exception {
+        Integer idEntrega = subirEntregaValidaYObtenerId(tokenEstudianteMatriculado, tareaVigente.getIdTarea());
+
+        String bodyCalificacion = """
+                {"calificacion": 9.0, "comentarioProf": "Excelente"}
+                """;
+        mockMvc.perform(put("/api/entregas/" + idEntrega + "/calificacion")
+                        .header("Authorization", "Bearer " + tokenProfesorDueno)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bodyCalificacion))
+                .andExpect(status().isOk());
+
+        MockMultipartFile intentoReemplazo = new MockMultipartFile("archivo", "reemplazo_indebido.pdf", "application/pdf",
+                "no deberia guardarse".getBytes(StandardCharsets.UTF_8));
+        mockMvc.perform(multipart("/api/tareas/" + tareaVigente.getIdTarea() + "/entregas")
+                        .file(intentoReemplazo)
+                        .header("Authorization", "Bearer " + tokenEstudianteMatriculado))
+                .andExpect(status().isConflict());
+
+        Entrega entrega = entregaRepository.findById(idEntrega).orElseThrow();
+        Assertions.assertEquals("trabajo.pdf", entrega.getNombreArchivo(),
+                "El intento de reemplazo sobre una entrega ya calificada no debe cambiar el archivo original");
+        Assertions.assertEquals(0, new java.math.BigDecimal("9.0").compareTo(entrega.getCalificacion()),
+                "La calificacion original debe seguir intacta");
+    }
 }

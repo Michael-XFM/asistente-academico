@@ -95,6 +95,12 @@ public class EntregaService {
         Optional<Entrega> existenteOpt = entregaRepository
                 .findByTarea_IdTareaAndEstudiante_IdUsuario(idTarea, estudiante.getIdUsuario());
 
+        if (existenteOpt.isPresent() && existenteOpt.get().getCalificacion() != null) {
+            throw new EntregaException(HttpStatus.CONFLICT, "entrega-ya-calificada",
+                    "Entrega ya calificada",
+                    "Esta entrega ya fue calificada y no se puede reemplazar. Contactá a tu profesor si necesitás corregirla.");
+        }
+
         // Se escribe el archivo nuevo ANTES de borrar el viejo o tocar la
         // fila: si algo falla al guardar en disco, la entrega anterior
         // (fila + archivo fisico) queda intacta en vez de perderse.
@@ -134,15 +140,42 @@ public class EntregaService {
 
         return matriculados.stream()
                 .map(Matricula::getUsuario)
-                .map(est -> entregaRepository.findByTarea_IdTareaAndEstudiante_IdUsuario(idTarea, est.getIdUsuario())
-                        .map(e -> new EstadoEntregaEstudiante(
-                                est.getIdUsuario(), est.getNombre(), true,
-                                e.getIdEntrega(), e.getNombreArchivo(), e.getFechaEnvio(),
-                                e.getCalificacion(), e.getComentarioProf(), e.getFechaCalificacion()))
-                        .orElseGet(() -> new EstadoEntregaEstudiante(
-                                est.getIdUsuario(), est.getNombre(), false,
-                                null, null, null, null, null, null)))
+                .map(est -> mapAEstado(est, idTarea))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Estado de entrega del estudiante autenticado (no de todos los
+     * matriculados) para una tarea puntual -- lo que necesita el propio
+     * estudiante para saber si ya entrego, con que archivo, y si ya lo
+     * calificaron, antes de decidir si subir o reemplazar. 403 si no esta
+     * matriculado (mismo mensaje que subir()), nunca 404 solo porque
+     * todavia no entrego: eso se representa con entrego=false, no con un
+     * error.
+     */
+    public EstadoEntregaEstudiante obtenerEstadoPropio(Integer idTarea, Usuario estudiante) {
+        Tarea tarea = tareaRepository.findById(idTarea)
+                .orElseThrow(() -> new EntregaException(HttpStatus.NOT_FOUND, "tarea-no-encontrada",
+                        "Tarea no encontrada", "No existe una tarea con id " + idTarea + "."));
+
+        if (!matriculaRepository.existsByUsuario_IdUsuarioAndMateria_IdMateria(
+                estudiante.getIdUsuario(), tarea.getMateria().getIdMateria())) {
+            throw new EntregaException(HttpStatus.FORBIDDEN, "no-matriculado",
+                    "Acceso prohibido", "No estás matriculado en la materia de esta tarea.");
+        }
+
+        return mapAEstado(estudiante, idTarea);
+    }
+
+    private EstadoEntregaEstudiante mapAEstado(Usuario estudiante, Integer idTarea) {
+        return entregaRepository.findByTarea_IdTareaAndEstudiante_IdUsuario(idTarea, estudiante.getIdUsuario())
+                .map(e -> new EstadoEntregaEstudiante(
+                        estudiante.getIdUsuario(), estudiante.getNombre(), true,
+                        e.getIdEntrega(), e.getNombreArchivo(), e.getFechaEnvio(),
+                        e.getCalificacion(), e.getComentarioProf(), e.getFechaCalificacion()))
+                .orElseGet(() -> new EstadoEntregaEstudiante(
+                        estudiante.getIdUsuario(), estudiante.getNombre(), false,
+                        null, null, null, null, null, null));
     }
 
     /**

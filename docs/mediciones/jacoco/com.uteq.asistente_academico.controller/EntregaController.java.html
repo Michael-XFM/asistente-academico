@@ -83,6 +83,25 @@ import java.util.Optional;
     }
 
     /**
+     * Estado de la propia entrega del estudiante autenticado para una
+     * tarea puntual -- lo que el frontend necesita antes de abrir el
+     * modal de subida (para saber si mostrar &quot;Subir&quot; o el archivo ya
+     * enviado). 200 siempre que la tarea exista y este matriculado, con
+     * &quot;entrego&quot;: false si todavia no subio nada (nunca 404 por eso).
+     */
+    @PreAuthorize(&quot;hasRole('ESTUDIANTE')&quot;)
+    @GetMapping(&quot;/api/tareas/{idTarea}/mi-entrega&quot;)
+    public ResponseEntity&lt;?&gt; miEntrega(Authentication authentication, HttpServletRequest request,
+                                        @PathVariable Integer idTarea) {
+<span class="fc" id="L96">        Optional&lt;Usuario&gt; estudianteOpt = usuarioService.buscarPorEmail(authentication.getName());</span>
+<span class="pc bpc" id="L97" title="1 of 2 branches missed.">        if (estudianteOpt.isEmpty()) {</span>
+<span class="nc" id="L98">            return errorUsuarioNoEncontrado(request);</span>
+        }
+<span class="fc" id="L100">        EstadoEntregaEstudiante estado = entregaService.obtenerEstadoPropio(idTarea, estudianteOpt.get());</span>
+<span class="fc" id="L101">        return ResponseEntity.ok(estado);</span>
+    }
+
+    /**
      * Descarga el archivo de una entrega. Sin @PreAuthorize por rol fijo:
      * tanto ESTUDIANTE (dueño) como PROFESOR (de la materia) pueden
      * llegar aca, y la distincion la resuelve EntregaService.obtenerParaDescarga.
@@ -90,27 +109,27 @@ import java.util.Optional;
     @GetMapping(&quot;/api/entregas/{idEntrega}/archivo&quot;)
     public ResponseEntity&lt;?&gt; descargarArchivo(Authentication authentication, HttpServletRequest request,
                                                @PathVariable Integer idEntrega) {
-<span class="fc" id="L93">        Optional&lt;Usuario&gt; usuarioOpt = usuarioService.buscarPorEmail(authentication.getName());</span>
-<span class="pc bpc" id="L94" title="1 of 2 branches missed.">        if (usuarioOpt.isEmpty()) {</span>
-<span class="nc" id="L95">            return errorUsuarioNoEncontrado(request);</span>
+<span class="fc" id="L112">        Optional&lt;Usuario&gt; usuarioOpt = usuarioService.buscarPorEmail(authentication.getName());</span>
+<span class="pc bpc" id="L113" title="1 of 2 branches missed.">        if (usuarioOpt.isEmpty()) {</span>
+<span class="nc" id="L114">            return errorUsuarioNoEncontrado(request);</span>
         }
-<span class="fc" id="L97">        Entrega entrega = entregaService.obtenerParaDescarga(idEntrega, usuarioOpt.get());</span>
+<span class="fc" id="L116">        Entrega entrega = entregaService.obtenerParaDescarga(idEntrega, usuarioOpt.get());</span>
 
         try {
-<span class="fc" id="L100">            Path ruta = Paths.get(entrega.getRutaArchivo());</span>
-<span class="fc" id="L101">            Resource recurso = new UrlResource(ruta.toUri());</span>
-<span class="pc bpc" id="L102" title="2 of 4 branches missed.">            if (!recurso.exists() || !recurso.isReadable()) {</span>
-<span class="nc" id="L103">                return errorArchivoNoDisponible(request, idEntrega);</span>
+<span class="fc" id="L119">            Path ruta = Paths.get(entrega.getRutaArchivo());</span>
+<span class="fc" id="L120">            Resource recurso = new UrlResource(ruta.toUri());</span>
+<span class="pc bpc" id="L121" title="2 of 4 branches missed.">            if (!recurso.exists() || !recurso.isReadable()) {</span>
+<span class="nc" id="L122">                return errorArchivoNoDisponible(request, idEntrega);</span>
             }
-<span class="fc" id="L105">            ContentDisposition disposicion = ContentDisposition.builder(&quot;attachment&quot;)</span>
-<span class="fc" id="L106">                    .filename(entrega.getNombreArchivo())</span>
-<span class="fc" id="L107">                    .build();</span>
-<span class="fc" id="L108">            return ResponseEntity.ok()</span>
-<span class="fc" id="L109">                    .contentType(mediaTypePorFormato(entrega.getFormato()))</span>
-<span class="fc" id="L110">                    .header(HttpHeaders.CONTENT_DISPOSITION, disposicion.toString())</span>
-<span class="fc" id="L111">                    .body(recurso);</span>
-<span class="nc" id="L112">        } catch (MalformedURLException e) {</span>
-<span class="nc" id="L113">            return errorArchivoNoDisponible(request, idEntrega);</span>
+<span class="fc" id="L124">            ContentDisposition disposicion = ContentDisposition.builder(&quot;attachment&quot;)</span>
+<span class="fc" id="L125">                    .filename(entrega.getNombreArchivo())</span>
+<span class="fc" id="L126">                    .build();</span>
+<span class="fc" id="L127">            return ResponseEntity.ok()</span>
+<span class="fc" id="L128">                    .contentType(mediaTypePorFormato(entrega.getFormato()))</span>
+<span class="fc" id="L129">                    .header(HttpHeaders.CONTENT_DISPOSITION, disposicion.toString())</span>
+<span class="fc" id="L130">                    .body(recurso);</span>
+<span class="nc" id="L131">        } catch (MalformedURLException e) {</span>
+<span class="nc" id="L132">            return errorArchivoNoDisponible(request, idEntrega);</span>
         }
     }
 
@@ -123,41 +142,41 @@ import java.util.Optional;
     public ResponseEntity&lt;?&gt; calificarEntrega(Authentication authentication, HttpServletRequest request,
                                                @PathVariable Integer idEntrega,
                                                @RequestBody CalificarEntregaRequest datos) {
-<span class="fc" id="L126">        Optional&lt;Usuario&gt; profesorOpt = usuarioService.buscarPorEmail(authentication.getName());</span>
-<span class="pc bpc" id="L127" title="1 of 2 branches missed.">        if (profesorOpt.isEmpty()) {</span>
-<span class="nc" id="L128">            return errorUsuarioNoEncontrado(request);</span>
+<span class="fc" id="L145">        Optional&lt;Usuario&gt; profesorOpt = usuarioService.buscarPorEmail(authentication.getName());</span>
+<span class="pc bpc" id="L146" title="1 of 2 branches missed.">        if (profesorOpt.isEmpty()) {</span>
+<span class="nc" id="L147">            return errorUsuarioNoEncontrado(request);</span>
         }
-<span class="fc" id="L130">        Entrega entrega = entregaService.calificar(idEntrega, profesorOpt.get(), datos.calificacion(), datos.comentarioProf());</span>
-<span class="fc" id="L131">        return ResponseEntity.ok(entrega);</span>
+<span class="fc" id="L149">        Entrega entrega = entregaService.calificar(idEntrega, profesorOpt.get(), datos.calificacion(), datos.comentarioProf());</span>
+<span class="fc" id="L150">        return ResponseEntity.ok(entrega);</span>
     }
 
     // ---- helpers ----
 
     private MediaType mediaTypePorFormato(String formato) {
-<span class="pc bpc" id="L137" title="3 of 4 branches missed.">        return switch (formato) {</span>
-<span class="fc" id="L138">            case &quot;PDF&quot; -&gt; MediaType.APPLICATION_PDF;</span>
-<span class="nc" id="L139">            case &quot;DOCX&quot; -&gt; MediaType.valueOf(&quot;application/vnd.openxmlformats-officedocument.wordprocessingml.document&quot;);</span>
-<span class="nc" id="L140">            case &quot;XLSX&quot; -&gt; MediaType.valueOf(&quot;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet&quot;);</span>
-<span class="nc" id="L141">            default -&gt; MediaType.APPLICATION_OCTET_STREAM;</span>
+<span class="pc bpc" id="L156" title="3 of 4 branches missed.">        return switch (formato) {</span>
+<span class="fc" id="L157">            case &quot;PDF&quot; -&gt; MediaType.APPLICATION_PDF;</span>
+<span class="nc" id="L158">            case &quot;DOCX&quot; -&gt; MediaType.valueOf(&quot;application/vnd.openxmlformats-officedocument.wordprocessingml.document&quot;);</span>
+<span class="nc" id="L159">            case &quot;XLSX&quot; -&gt; MediaType.valueOf(&quot;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet&quot;);</span>
+<span class="nc" id="L160">            default -&gt; MediaType.APPLICATION_OCTET_STREAM;</span>
         };
     }
 
     private ResponseEntity&lt;ProblemDetail&gt; errorUsuarioNoEncontrado(HttpServletRequest request) {
-<span class="nc" id="L146">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+<span class="nc" id="L165">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
                 HttpStatus.NOT_FOUND, &quot;El usuario del token no existe en el sistema.&quot;);
-<span class="nc" id="L148">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/usuario-no-encontrado&quot;));</span>
-<span class="nc" id="L149">        problema.setTitle(&quot;Usuario no encontrado&quot;);</span>
-<span class="nc" id="L150">        problema.setInstance(URI.create(request.getRequestURI()));</span>
-<span class="nc" id="L151">        return ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
+<span class="nc" id="L167">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/usuario-no-encontrado&quot;));</span>
+<span class="nc" id="L168">        problema.setTitle(&quot;Usuario no encontrado&quot;);</span>
+<span class="nc" id="L169">        problema.setInstance(URI.create(request.getRequestURI()));</span>
+<span class="nc" id="L170">        return ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
     }
 
     private ResponseEntity&lt;ProblemDetail&gt; errorArchivoNoDisponible(HttpServletRequest request, Integer idEntrega) {
-<span class="nc" id="L155">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+<span class="nc" id="L174">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
                 HttpStatus.NOT_FOUND, &quot;El archivo de la entrega &quot; + idEntrega + &quot; ya no está disponible en el servidor.&quot;);
-<span class="nc" id="L157">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/archivo-no-disponible&quot;));</span>
-<span class="nc" id="L158">        problema.setTitle(&quot;Archivo no disponible&quot;);</span>
-<span class="nc" id="L159">        problema.setInstance(URI.create(request.getRequestURI()));</span>
-<span class="nc" id="L160">        return ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
+<span class="nc" id="L176">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/archivo-no-disponible&quot;));</span>
+<span class="nc" id="L177">        problema.setTitle(&quot;Archivo no disponible&quot;);</span>
+<span class="nc" id="L178">        problema.setInstance(URI.create(request.getRequestURI()));</span>
+<span class="nc" id="L179">        return ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

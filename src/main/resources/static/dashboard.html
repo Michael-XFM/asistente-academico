@@ -414,6 +414,34 @@
         .stamp.pendiente { color: var(--blue-academic); background: var(--soft-blue); }
         .stamp.vencida { color: var(--alert); background: #FBEAE7; }
 
+        .btn-entrega {
+            display: inline-block; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700;
+            padding: 2px 9px; border-radius: 999px; margin-left: 6px; vertical-align: middle;
+            border: 1px solid var(--blue-active); background: var(--soft-blue); color: var(--blue-academic); cursor: pointer;
+        }
+        .btn-entrega:hover { background: var(--blue-active); color: #fff; }
+
+        /* ---------- Modal de entrega (no existía ningún modal en esta
+           pagina antes; mismas clases/estilos que ya usa tareas.html) ---------- */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(20,35,59,0.45);
+            align-items: center; justify-content: center; z-index: 50; padding: 20px;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: var(--card); border-radius: 16px; padding: 28px; width: 100%;
+            max-width: 440px; box-shadow: 0 12px 40px rgba(20,35,59,0.25);
+        }
+        .modal h3 { font-family: 'Fraunces', serif; font-size: 20px; color: var(--navy); margin: 0 0 18px; }
+        .field { margin-bottom: 14px; }
+        .field label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.02em; }
+        .field input, .field textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font-family: 'Inter', sans-serif; font-size: 13.5px; color: var(--ink); background: var(--bg); }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .btn-secondary { background: none; border: 1px solid var(--line); color: var(--muted); padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .btn-secondary:hover { background: var(--bg); }
+        .modal-error { background: #FBEAE7; color: var(--alert); font-size: 12.5px; padding: 10px 12px; border-radius: 8px; margin-bottom: 14px; display: none; }
+        .modal-error.show { display: block; }
+
         .empty-note {
             background: var(--card);
             border: 1px solid var(--line);
@@ -621,6 +649,21 @@
     </main>
 </div>
 
+<!-- ---------- Modal de entrega ---------- -->
+<div class="modal-overlay" id="modalEntregaOverlay">
+    <div class="modal">
+        <h3 id="entregaModalTitulo">Entrega</h3>
+        <div class="modal-error" id="entregaModalError"></div>
+        <div id="entregaTareaInfo" style="font-size:12.5px;color:var(--muted);margin-bottom:14px;"></div>
+        <div id="entregaContenido">
+            <div class="loading-note">Cargando…</div>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn-secondary" onclick="cerrarModalEntrega()">Cerrar</button>
+        </div>
+    </div>
+</div>
+
 <script>
     const nombre = localStorage.getItem('nombre');
     const token = localStorage.getItem('token');
@@ -647,6 +690,17 @@
         var y = partes[0], m = partes[1], d = partes[2];
         var meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
         return d + ' ' + meses[parseInt(m, 10) - 1] + ' ' + y;
+    }
+
+    function escapeHtml(texto) {
+        const div = document.createElement('div');
+        div.textContent = texto == null ? '' : String(texto);
+        return div.innerHTML;
+    }
+
+    function formatearFechaHora(iso) {
+        if (!iso) return '';
+        return formatearFecha(iso.slice(0, 10)) + ', ' + iso.slice(11, 16);
     }
 
     // Combina fecha_entrega (DATE) + hora_limite (TIME, "23:59:59" si la
@@ -782,6 +836,7 @@
                     '<div class="ticket-fecha ' + (pocoTiempo ? 'dias-poco' : '') + '">' +
                         formatearFecha(t.fechaEntrega) + ' · cierra ' + formatearHoraLimite(t.horaLimite) + ' · ' + formatearCuentaRegresiva(seg) +
                         ' <span class="badge-vigencia ' + (vencida ? 'vencida' : 'vigente') + '">' + (vencida ? 'Vencida' : 'Vigente') + '</span>' +
+                        ' <button type="button" class="btn-entrega" onclick="abrirModalEntrega(' + t.idTarea + ')">Entrega</button>' +
                     '</div>' +
                 '</div>' +
                 '<div class="stamp ' + (vencida ? 'vencida' : 'pendiente') + '">' +
@@ -807,6 +862,127 @@
             await cargarDashboard();
         } catch (error) {
             alert('No se pudieron marcar los avisos como leídos.');
+        }
+    }
+
+    // ---------- Entrega (subir/ver archivo de una tarea) ----------
+    let entregaTareaActual = null;
+
+    async function abrirModalEntrega(idTarea) {
+        const t = pendientesCache.find(function (x) { return x.idTarea === idTarea; });
+        if (!t) return;
+        entregaTareaActual = idTarea;
+
+        document.getElementById('entregaModalError').classList.remove('show');
+        document.getElementById('entregaModalTitulo').textContent = 'Entrega — ' + t.titulo;
+        document.getElementById('entregaTareaInfo').textContent =
+            'Fecha límite: ' + formatearFecha(t.fechaEntrega) + ' a las ' + formatearHoraLimite(t.horaLimite) + '.';
+        document.getElementById('entregaContenido').innerHTML = '<div class="loading-note">Cargando…</div>';
+        document.getElementById('modalEntregaOverlay').classList.add('open');
+
+        try {
+            const resp = await fetch('https://localhost:8443/api/tareas/' + idTarea + '/mi-entrega', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (resp.status === 401) {
+                localStorage.clear();
+                window.location.href = 'index.html';
+                return;
+            }
+            const estado = await resp.json().catch(function () { return null; });
+            // No se trata el 403 como sesión inválida acá a propósito: es
+            // una respuesta de negocio legítima (ej. "no estás matriculado"),
+            // no un token roto.
+            if (!resp.ok) {
+                throw new Error(estado && estado.detail ? estado.detail : 'No se pudo cargar el estado de la entrega.');
+            }
+            renderizarContenidoEntrega(t, estado);
+        } catch (e) {
+            document.getElementById('entregaContenido').innerHTML =
+                '<div class="error-note">' + escapeHtml(e.message) + '</div>';
+        }
+    }
+
+    function renderizarContenidoEntrega(tarea, estado) {
+        const cont = document.getElementById('entregaContenido');
+        const vencida = segundosHastaLimite(tarea.fechaEntrega, tarea.horaLimite) < 0;
+        const calificada = estado.entrego && estado.calificacion != null;
+
+        if (calificada) {
+            cont.innerHTML =
+                '<div class="field"><label>Archivo entregado</label><div>' + escapeHtml(estado.nombreArchivo) + '</div></div>' +
+                '<div class="field"><label>Enviado</label><div>' + formatearFechaHora(estado.fechaEnvio) + '</div></div>' +
+                '<div class="field"><label>Calificación</label><div style="font-size:20px;font-weight:700;color:var(--green);">' + estado.calificacion + ' / 10</div></div>' +
+                '<div class="field"><label>Comentario del profesor</label><div>' + escapeHtml(estado.comentarioProf || 'Sin comentario.') + '</div></div>';
+            return;
+        }
+
+        if (!estado.entrego && vencida) {
+            cont.innerHTML = '<div class="empty-note">No se entregó nada y la tarea ya venció. Ya no se pueden subir archivos.</div>';
+            return;
+        }
+
+        let html = '';
+        if (estado.entrego) {
+            html += '<div class="field"><label>Archivo actual</label><div>' + escapeHtml(estado.nombreArchivo) + '</div></div>' +
+                    '<div class="field"><label>Enviado</label><div>' + formatearFechaHora(estado.fechaEnvio) + '</div></div>';
+        }
+
+        if (vencida) {
+            html += '<div class="empty-note">La tarea ya venció, no se puede reemplazar el archivo.</div>';
+        } else {
+            html +=
+                '<div class="field">' +
+                    '<label for="entregaArchivoInput">' + (estado.entrego ? 'Reemplazar archivo' : 'Archivo') + ' (PDF, DOCX o XLSX, máx. 10MB)</label>' +
+                    '<input type="file" id="entregaArchivoInput" accept=".pdf,.docx,.xlsx">' +
+                '</div>' +
+                '<div style="margin-top:16px;">' +
+                    '<button type="button" class="btn-primary" style="width:100%;" onclick="subirEntrega()">' + (estado.entrego ? 'Reemplazar' : 'Subir') + '</button>' +
+                '</div>';
+        }
+
+        cont.innerHTML = html;
+    }
+
+    function cerrarModalEntrega() {
+        document.getElementById('modalEntregaOverlay').classList.remove('open');
+        entregaTareaActual = null;
+    }
+
+    async function subirEntrega() {
+        const input = document.getElementById('entregaArchivoInput');
+        const errorBox = document.getElementById('entregaModalError');
+        errorBox.classList.remove('show');
+
+        if (!input || !input.files.length) {
+            errorBox.textContent = 'Selecciona un archivo.';
+            errorBox.classList.add('show');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('archivo', input.files[0]);
+
+        try {
+            const resp = await fetch('https://localhost:8443/api/tareas/' + entregaTareaActual + '/entregas', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token },
+                body: formData
+            });
+            const datos = await resp.json().catch(function () { return null; });
+            if (!resp.ok) {
+                throw new Error(datos && datos.detail ? datos.detail : 'No se pudo subir el archivo.');
+            }
+
+            const t = pendientesCache.find(function (x) { return x.idTarea === entregaTareaActual; });
+            const estadoResp = await fetch('https://localhost:8443/api/tareas/' + entregaTareaActual + '/mi-entrega', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const estado = await estadoResp.json();
+            renderizarContenidoEntrega(t, estado);
+        } catch (e) {
+            errorBox.textContent = e.message;
+            errorBox.classList.add('show');
         }
     }
 

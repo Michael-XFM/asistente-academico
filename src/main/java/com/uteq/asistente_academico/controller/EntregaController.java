@@ -83,6 +83,25 @@ public class EntregaController {
     }
 
     /**
+     * Estado de la propia entrega del estudiante autenticado para una
+     * tarea puntual -- lo que el frontend necesita antes de abrir el
+     * modal de subida (para saber si mostrar "Subir" o el archivo ya
+     * enviado). 200 siempre que la tarea exista y este matriculado, con
+     * "entrego": false si todavia no subio nada (nunca 404 por eso).
+     */
+    @PreAuthorize("hasRole('ESTUDIANTE')")
+    @GetMapping("/api/tareas/{idTarea}/mi-entrega")
+    public ResponseEntity<?> miEntrega(Authentication authentication, HttpServletRequest request,
+                                        @PathVariable Integer idTarea) {
+        Optional<Usuario> estudianteOpt = usuarioService.buscarPorEmail(authentication.getName());
+        if (estudianteOpt.isEmpty()) {
+            return errorUsuarioNoEncontrado(request);
+        }
+        EstadoEntregaEstudiante estado = entregaService.obtenerEstadoPropio(idTarea, estudianteOpt.get());
+        return ResponseEntity.ok(estado);
+    }
+
+    /**
      * Descarga el archivo de una entrega. Sin @PreAuthorize por rol fijo:
      * tanto ESTUDIANTE (dueño) como PROFESOR (de la materia) pueden
      * llegar aca, y la distincion la resuelve EntregaService.obtenerParaDescarga.
