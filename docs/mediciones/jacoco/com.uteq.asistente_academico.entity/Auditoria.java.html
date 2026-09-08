@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Auditoria.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">com.uteq.asistente_academico.entity</a> &gt; <span class="el_source">Auditoria.java</span></div><h1>Auditoria.java</h1><pre class="source lang-java linenums">package com.uteq.asistente_academico.entity;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import org.hibernate.annotations.Immutable;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.time.Instant;
+
+/**
+ * Fila de la tabla auditoria, poblada exclusivamente por el trigger de
+ * Postgres (fn_auditoria) -- la app nunca inserta ni actualiza esto via
+ * JPA. @Immutable evita que Hibernate haga dirty-checking sobre esta
+ * entidad; a proposito no tiene setters.
+ */
+@Entity
+@Table(name = &quot;auditoria&quot;)
+@Immutable
+<span class="nc" id="L23">public class Auditoria {</span>
+
+    @Id
+    private Long id;
+
+    @Column(name = &quot;fecha_hora&quot;)
+    private Instant fechaHora;
+
+    @Column(name = &quot;usuario_bd&quot;)
+    private String usuarioBd;
+
+    @Column(name = &quot;usuario_app&quot;)
+    private String usuarioApp;
+
+    private String operacion;
+
+    private String esquema;
+
+    private String tabla;
+
+    @Column(name = &quot;registro_id&quot;)
+    private String registroId;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = &quot;datos_anteriores&quot;)
+    private JsonNode datosAnteriores;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = &quot;datos_nuevos&quot;)
+    private JsonNode datosNuevos;
+
+    @Column(name = &quot;transaccion_id&quot;)
+    private Long transaccionId;
+
+    public Long getId() {
+<span class="nc" id="L58">        return id;</span>
+    }
+
+    public Instant getFechaHora() {
+<span class="nc" id="L62">        return fechaHora;</span>
+    }
+
+    public String getUsuarioBd() {
+<span class="nc" id="L66">        return usuarioBd;</span>
+    }
+
+    public String getUsuarioApp() {
+<span class="nc" id="L70">        return usuarioApp;</span>
+    }
+
+    public String getOperacion() {
+<span class="nc" id="L74">        return operacion;</span>
+    }
+
+    public String getEsquema() {
+<span class="nc" id="L78">        return esquema;</span>
+    }
+
+    public String getTabla() {
+<span class="nc" id="L82">        return tabla;</span>
+    }
+
+    public String getRegistroId() {
+<span class="nc" id="L86">        return registroId;</span>
+    }
+
+    public JsonNode getDatosAnteriores() {
+<span class="nc" id="L90">        return datosAnteriores;</span>
+    }
+
+    public JsonNode getDatosNuevos() {
+<span class="nc" id="L94">        return datosNuevos;</span>
+    }
+
+    public Long getTransaccionId() {
+<span class="nc" id="L98">        return transaccionId;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

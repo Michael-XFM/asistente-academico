@@ -5,7 +5,10 @@
 -- ya se crean en 01-schema.sql (db/schema.sql), que no depende del rol.
 --
 -- app_academico hereda SELECT/INSERT/UPDATE/DELETE automaticamente por
--- el ALTER DEFAULT PRIVILEGES ya existente (db/roles.sql) -- se le quita
--- todo menos INSERT explicitamente. El trigger de auditoria en si no
--- depende de esto: corre como postgres via SECURITY DEFINER.
-REVOKE SELECT, UPDATE, DELETE ON auditoria FROM app_academico;
+-- el ALTER DEFAULT PRIVILEGES ya existente (db/roles.sql). Le dejamos
+-- SELECT (GET /api/admin/auditoria lee esta tabla via JPA, con este
+-- mismo rol) e INSERT (aunque el trigger no lo necesita, corre como
+-- postgres via SECURITY DEFINER -- ver V6__auditoria.sql). Le quitamos
+-- UPDATE/DELETE: la app nunca debe poder modificar ni borrar filas de
+-- auditoria, solo leerlas y dejar que el trigger las inserte.
+REVOKE UPDATE, DELETE ON auditoria FROM app_academico;

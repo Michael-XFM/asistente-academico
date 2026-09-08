@@ -109,7 +109,9 @@ BEGIN
 END $$;
 
 -- app_academico hereda SELECT/INSERT/UPDATE/DELETE automaticamente por
--- el ALTER DEFAULT PRIVILEGES ya existente (db/roles.sql) -- se le quita
--- todo menos INSERT explicitamente. El trigger mismo no depende de esto
--- (corre como postgres via SECURITY DEFINER).
-REVOKE SELECT, UPDATE, DELETE ON auditoria FROM app_academico;
+-- el ALTER DEFAULT PRIVILEGES ya existente (db/roles.sql). Le dejamos
+-- SELECT (GET /api/admin/auditoria lee esta tabla via JPA, con este
+-- mismo rol) e INSERT (el trigger no lo necesita -- corre como postgres
+-- via SECURITY DEFINER -- pero no hace dano dejarlo). Le quitamos
+-- UPDATE/DELETE: la app nunca debe poder modificar ni borrar auditoria.
+REVOKE UPDATE, DELETE ON auditoria FROM app_academico;

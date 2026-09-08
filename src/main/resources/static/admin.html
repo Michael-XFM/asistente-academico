@@ -130,6 +130,46 @@
         .table-actions button.danger { color: var(--alert); }
         .table-actions button.danger:hover { border-color: var(--alert); background: #FBEAE7; }
 
+        /* ---------- Auditoria ---------- */
+        .filters-bar { display: flex; gap: 14px; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; }
+        .filters-bar .field { display: flex; flex-direction: column; gap: 5px; }
+        .filters-bar label {
+            font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted);
+        }
+        .filters-bar select, .filters-bar input {
+            padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; font-family: 'Inter', sans-serif;
+            font-size: 13px; color: var(--ink); background: var(--card); min-width: 190px;
+        }
+        .filters-bar select:focus, .filters-bar input:focus { outline: none; border-color: var(--blue-active); }
+
+        .op-chip { display: inline-block; padding: 4px 11px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.03em; }
+        .op-chip.INSERT { background: var(--soft-green); color: var(--green); }
+        .op-chip.UPDATE { background: var(--soft-blue); color: var(--blue-academic); }
+        .op-chip.DELETE { background: #FBEAE7; color: var(--alert); }
+
+        /* ---------- Modal ---------- */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(6,43,87,0.45);
+            align-items: center; justify-content: center; z-index: 50; padding: 20px;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-card { background: var(--card); border-radius: 16px; padding: 26px; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(6,43,87,0.3); }
+        .modal-card.ancho { max-width: 680px; max-height: 82vh; overflow-y: auto; }
+        .modal-card h3 { font-family: 'Fraunces', serif; margin: 0 0 16px; color: var(--navy); }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
+        .btn-secondary {
+            background: none; border: 1px solid var(--line); color: var(--muted); padding: 11px 18px;
+            border-radius: 10px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer;
+        }
+        .btn-secondary:hover { border-color: var(--blue-active); color: var(--blue-academic); }
+
+        .json-block-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 6px; }
+        .json-block {
+            background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 14px;
+            font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word;
+            max-height: 260px; overflow-y: auto; margin: 0 0 18px;
+        }
+
         @media (max-width: 860px) {
             .layout { grid-template-columns: 1fr; }
             .sidebar { flex-direction: row; overflow-x: auto; padding: 12px; }
@@ -162,6 +202,10 @@
             <button class="tab" data-panel="panelRespaldos" onclick="mostrarPanel('panelRespaldos', this)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
                 Respaldos
+            </button>
+            <button class="tab" data-panel="panelAuditoria" onclick="mostrarPanel('panelAuditoria', this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
+                Auditoría
             </button>
         </nav>
         <div class="sidebar-footer">
@@ -217,7 +261,51 @@
                 <div class="loading-note">Cargando respaldos…</div>
             </div>
         </div>
+
+        <!-- ---------- Panel: Auditoría ---------- -->
+        <div class="panel" id="panelAuditoria">
+            <div class="section-head">
+                <h2>Auditoría</h2>
+                <span class="page-sub" id="auditoriaSub" style="margin:0;">Cargando…</span>
+            </div>
+            <div class="filters-bar">
+                <div class="field">
+                    <label for="filtroTabla">Tabla</label>
+                    <select id="filtroTabla">
+                        <option value="">Todas</option>
+                        <option value="usuarios">usuarios</option>
+                        <option value="tareas">tareas</option>
+                        <option value="entrega">entrega</option>
+                        <option value="calificaciones">calificaciones</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="filtroUsuarioApp">Usuario (email)</label>
+                    <input type="text" id="filtroUsuarioApp" placeholder="usuario@uteq.edu.ec">
+                </div>
+                <button type="button" class="btn-primary" style="width:auto;" onclick="filtrarAuditoria()">Filtrar</button>
+            </div>
+            <div id="auditoriaCont">
+                <div class="loading-note">Cargando auditoría…</div>
+            </div>
+            <div class="pagination" id="auditoriaPaginacion" style="display:none;">
+                <button id="btnAuditoriaPagAnterior" onclick="cambiarPaginaAuditoria(-1)">← Anterior</button>
+                <span id="auditoriaPagInfo"></span>
+                <button id="btnAuditoriaPagSiguiente" onclick="cambiarPaginaAuditoria(1)">Siguiente →</button>
+            </div>
+        </div>
     </main>
+</div>
+
+<!-- ---------- Modal: Detalle de auditoría ---------- -->
+<div class="modal-overlay" id="modalAuditoriaOverlay">
+    <div class="modal-card ancho">
+        <h3>Detalle de auditoría</h3>
+        <div id="auditoriaDetalleBox"></div>
+        <div class="modal-actions">
+            <button type="button" class="btn-secondary" onclick="cerrarModalAuditoria()">Cerrar</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -519,6 +607,108 @@
         }
     }
 
+    // ---------- Auditoria ----------
+    let paginaAuditoria = 0;
+    let totalPaginasAuditoria = 1;
+    let auditoriaCache = [];
+
+    function opChip(operacion) {
+        return '<span class="op-chip ' + escapeHtml(operacion) + '">' + escapeHtml(operacion) + '</span>';
+    }
+
+    async function cargarAuditoria() {
+        const cont = document.getElementById('auditoriaCont');
+        try {
+            const tabla = document.getElementById('filtroTabla').value;
+            const usuarioApp = document.getElementById('filtroUsuarioApp').value.trim();
+            let url = 'https://localhost:8443/api/admin/auditoria?page=' + paginaAuditoria + '&size=10';
+            if (tabla) url += '&tabla=' + encodeURIComponent(tabla);
+            if (usuarioApp) url += '&usuarioApp=' + encodeURIComponent(usuarioApp);
+
+            const resp = await fetch(url, { headers: headers() });
+            if (manejarSesionInvalida(resp.status)) return;
+            if (!resp.ok) throw new Error();
+            const datos = await resp.json();
+            const filas = datos.content || [];
+            auditoriaCache = filas;
+            totalPaginasAuditoria = datos.totalPages || 1;
+
+            document.getElementById('auditoriaSub').textContent =
+                (datos.totalElements != null ? datos.totalElements : filas.length) + ' evento(s) de auditoría';
+
+            if (!filas.length) {
+                cont.innerHTML = '<div class="empty-note">No hay eventos de auditoría con estos filtros.</div>';
+                document.getElementById('auditoriaPaginacion').style.display = 'none';
+                return;
+            }
+
+            cont.innerHTML = '<div class="table-card"><table>' +
+                '<thead><tr><th>Fecha/hora</th><th>Tabla</th><th>Operación</th><th>Usuario</th><th></th></tr></thead>' +
+                '<tbody>' +
+                filas.map(function (a, i) {
+                    const usuario = a.usuarioApp ? escapeHtml(a.usuarioApp) : 'Sistema/sin sesión';
+                    return '<tr>' +
+                        '<td>' + formatearFechaHora(a.fechaHora) + '</td>' +
+                        '<td><span class="ticket-code">' + escapeHtml(a.tabla) + '</span></td>' +
+                        '<td>' + opChip(a.operacion) + '</td>' +
+                        '<td>' + usuario + '</td>' +
+                        '<td class="table-actions">' +
+                            '<button type="button" onclick="verDetalleAuditoria(' + i + ')">Ver detalle</button>' +
+                        '</td>' +
+                    '</tr>';
+                }).join('') +
+                '</tbody></table></div>';
+
+            document.getElementById('auditoriaPaginacion').style.display = totalPaginasAuditoria > 1 ? 'flex' : 'none';
+            document.getElementById('auditoriaPagInfo').textContent = 'Página ' + (paginaAuditoria + 1) + ' de ' + totalPaginasAuditoria;
+            document.getElementById('btnAuditoriaPagAnterior').disabled = paginaAuditoria <= 0;
+            document.getElementById('btnAuditoriaPagSiguiente').disabled = paginaAuditoria >= totalPaginasAuditoria - 1;
+        } catch (e) {
+            cont.innerHTML = '<div class="error-note">No se pudo cargar la auditoría.</div>';
+        }
+    }
+
+    function filtrarAuditoria() {
+        paginaAuditoria = 0;
+        cargarAuditoria();
+    }
+
+    function cambiarPaginaAuditoria(delta) {
+        const nueva = paginaAuditoria + delta;
+        if (nueva < 0 || nueva >= totalPaginasAuditoria) return;
+        paginaAuditoria = nueva;
+        cargarAuditoria();
+    }
+
+    // JSON.stringify + escapeHtml: el contenido de datosAnteriores/
+    // datosNuevos viene de filas reales de usuarios/tareas/etc, nunca se
+    // interpola en el DOM sin escapar aunque vaya dentro de un <pre>.
+    function bloqueJson(titulo, valor, notaVacio) {
+        const contenido = (valor == null)
+            ? '<div class="empty-note" style="padding:14px;">' + escapeHtml(notaVacio) + '</div>'
+            : '<pre class="json-block">' + escapeHtml(JSON.stringify(valor, null, 2)) + '</pre>';
+        return '<div class="json-block-label">' + escapeHtml(titulo) + '</div>' + contenido;
+    }
+
+    function verDetalleAuditoria(indice) {
+        const a = auditoriaCache[indice];
+        if (!a) return;
+        const notaAnterior = a.operacion === 'INSERT' ? 'No aplica: fue una creación.' : 'Sin datos anteriores registrados.';
+        const notaNueva = a.operacion === 'DELETE' ? 'No aplica: la fila fue eliminada.' : 'Sin datos nuevos registrados.';
+        document.getElementById('auditoriaDetalleBox').innerHTML =
+            '<div style="margin-bottom:14px; font-size:12.5px; color:var(--muted);">' +
+                escapeHtml(a.tabla) + ' · ' + opChip(a.operacion) + ' · ' + formatearFechaHora(a.fechaHora) +
+                ' · ' + (a.usuarioApp ? escapeHtml(a.usuarioApp) : 'Sistema/sin sesión') +
+            '</div>' +
+            bloqueJson('Datos anteriores', a.datosAnteriores, notaAnterior) +
+            bloqueJson('Datos nuevos', a.datosNuevos, notaNueva);
+        document.getElementById('modalAuditoriaOverlay').classList.add('open');
+    }
+
+    function cerrarModalAuditoria() {
+        document.getElementById('modalAuditoriaOverlay').classList.remove('open');
+    }
+
     function cerrarSesion() {
         localStorage.clear();
         window.location.href = 'index.html';
@@ -527,6 +717,7 @@
     cargarUsuarios();
     cargarTareas();
     cargarRespaldos();
+    cargarAuditoria();
 </script>
 </body>
 </html>

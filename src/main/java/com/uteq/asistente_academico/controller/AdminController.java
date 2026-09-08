@@ -1,11 +1,14 @@
 package com.uteq.asistente_academico.controller;
 
 import com.uteq.asistente_academico.audit.Auditado;
+import com.uteq.asistente_academico.dto.AuditoriaResumen;
 import com.uteq.asistente_academico.dto.RespaldoInfo;
 import com.uteq.asistente_academico.dto.RespaldoResumen;
 import com.uteq.asistente_academico.dto.RestauracionInfo;
+import com.uteq.asistente_academico.entity.Auditoria;
 import com.uteq.asistente_academico.entity.Tarea;
 import com.uteq.asistente_academico.exception.RespaldoException;
+import com.uteq.asistente_academico.repository.AuditoriaRepository;
 import com.uteq.asistente_academico.repository.TareaRepository;
 import com.uteq.asistente_academico.repository.UsuarioRepository;
 import com.uteq.asistente_academico.service.RespaldoService;
@@ -59,6 +62,9 @@ public class AdminController {
 
     @Autowired
     private RespaldoService respaldoService;
+
+    @Autowired
+    private AuditoriaRepository auditoriaRepository;
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/usuarios")
@@ -181,5 +187,37 @@ public class AdminController {
             throw new RespaldoException(HttpStatus.INTERNAL_SERVER_ERROR, "error-leer-respaldo",
                     "Error al leer el respaldo", "No se pudo leer el archivo de respaldo.");
         }
+    }
+
+    /**
+     * tabla/usuarioApp son filtros opcionales -- si no se pasan, devuelve
+     * todo paginado sin filtrar (ver AuditoriaRepository.buscar). Orden
+     * fijo mas reciente primero.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/auditoria")
+    public ResponseEntity<Page<AuditoriaResumen>> listarAuditoria(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String tabla,
+            @RequestParam(required = false) String usuarioApp) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Auditoria> resultado = auditoriaRepository.buscar(tabla, usuarioApp, pageable);
+        return ResponseEntity.ok(resultado.map(this::aResumen));
+    }
+
+    private AuditoriaResumen aResumen(Auditoria a) {
+        return new AuditoriaResumen(
+                a.getId(),
+                a.getFechaHora(),
+                a.getTabla(),
+                a.getEsquema(),
+                a.getOperacion(),
+                a.getUsuarioApp(),
+                a.getUsuarioBd(),
+                a.getRegistroId(),
+                a.getDatosAnteriores(),
+                a.getDatosNuevos()
+        );
     }
 }
