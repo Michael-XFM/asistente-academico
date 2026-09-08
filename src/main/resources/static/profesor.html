@@ -123,6 +123,10 @@
         .badge-vigencia { display: inline-block; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; padding: 2px 9px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
         .badge-vigencia.vigente { color: var(--green); background: var(--soft-green); }
         .badge-vigencia.vencida { color: var(--alert); background: #FBEAE7; }
+
+        /* Badge de rol junto al saludo -- mismo patron que badge-vigencia. */
+        .badge-rol { display: inline-block; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; padding: 2px 9px; border-radius: 999px; margin-left: 8px; vertical-align: middle; }
+        .badge-rol.profesor { color: var(--gold); background: var(--soft-gold); }
         .tarea-edit-btn {
             background: none; border: 1px solid var(--line); border-radius: 8px; padding: 8px;
             cursor: pointer; color: var(--blue-academic); flex-shrink: 0; display: flex;
@@ -355,7 +359,9 @@
     const nombre = localStorage.getItem('nombre');
     if (!token) window.location.href = 'index.html';
 
-    document.getElementById('saludo').textContent = 'Hola, ' + (nombre || 'profesor') + '.';
+    document.getElementById('saludo').innerHTML =
+        escapeHtml('Hola, ' + (nombre || 'profesor') + '.') +
+        ' <span class="badge-rol profesor">PROFESOR</span>';
 
     let materiaSeleccionada = null;
     let estudiantesCache = [];

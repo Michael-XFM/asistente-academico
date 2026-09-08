@@ -77,9 +77,14 @@
         tbody tr:hover { background: var(--bg); }
 
         .rol-chip { display: inline-block; padding: 4px 11px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.03em; }
-        .rol-chip.ADMIN { background: var(--soft-violet); color: var(--violet); }
+        .rol-chip.ADMIN { background: #FBEAE7; color: var(--alert); }
         .rol-chip.PROFESOR { background: var(--soft-gold); color: var(--gold); }
         .rol-chip.ESTUDIANTE { background: var(--soft-blue); color: var(--blue-academic); }
+
+        /* Badge de rol junto al titulo del panel -- mismo patron que
+           badge-vigencia (dashboard.html/profesor.html/tareas.html). */
+        .badge-rol { display: inline-block; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; padding: 2px 9px; border-radius: 999px; margin-left: 8px; vertical-align: middle; }
+        .badge-rol.admin { color: var(--alert); background: #FBEAE7; }
 
         .icon-btn {
             width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--card);
@@ -217,7 +222,7 @@
     </aside>
 
     <main>
-        <h1 class="page-title">Panel de administración</h1>
+        <h1 class="page-title">Panel de administración <span class="badge-rol admin">ADMIN</span></h1>
         <div class="page-sub">Gestión global de usuarios y supervisión de tareas del sistema.</div>
 
         <!-- ---------- Panel: Usuarios ---------- -->

@@ -400,6 +400,10 @@
         .badge-vigencia.vigente { color: var(--green); background: var(--soft-green); }
         .badge-vigencia.vencida { color: var(--alert); background: #FBEAE7; }
 
+        /* Badge de rol junto al saludo -- mismo patron que badge-vigencia. */
+        .badge-rol { display: inline-block; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; padding: 2px 9px; border-radius: 999px; margin-left: 8px; vertical-align: middle; }
+        .badge-rol.estudiante { color: var(--blue-academic); background: var(--soft-blue); }
+
         .stamp {
             font-family: 'Inter', sans-serif;
             font-weight: 700;
@@ -674,7 +678,9 @@
 
     const hora = new Date().getHours();
     const saludoBase = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches';
-    document.getElementById('saludo').textContent = saludoBase + ', ' + (nombre || '') + '.';
+    document.getElementById('saludo').innerHTML =
+        escapeHtml(saludoBase + ', ' + (nombre || '') + '.') +
+        ' <span class="badge-rol estudiante">ESTUDIANTE</span>';
 
     const hoy = new Date();
     document.getElementById('regFecha').textContent =
