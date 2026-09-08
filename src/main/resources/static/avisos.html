@@ -9,12 +9,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --navy: #062B57; --blue-academic: #1769D1; --blue-active: #2F80ED;
-            --gold: #D99A2B; --green: #21A675; --violet: #8064D9; --alert: #C24A3A;
-            --bg: #F6F8FC; --card: #FFFFFF;
-            --soft-blue: #EEF5FF; --soft-green: #EDF9F4; --soft-gold: #FFF6E6; --soft-violet: #F5F0FF;
-            --ink: #14233B; --muted: #607089; --faint: #8A97AA; --line: #E4EAF2;
-            --shadow: 0 4px 16px rgba(20,35,59,0.08);
+            --navy: #146B3F; --blue-academic: #1F9D5C; --blue-active: #1F9D5C;
+            --gold: #8A6414; --green: #1F9D5C; --violet: #8064D9; --alert: #C0392B;
+            --bg: #F4FBF6; --card: #FFFFFF;
+            --soft-blue: #E7F6EC; --soft-green: #E7F6EC; --soft-gold: #FFF6E6; --soft-violet: #F5F0FF;
+            --ink: #16241C; --muted: #5B7165; --faint: #8A97AA; --line: #E4EAF2;
+            --shadow: 0 4px 16px rgba(22,36,28,0.08);
         }
         * { box-sizing: border-box; }
         body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--ink); }
@@ -29,7 +29,7 @@
         nav.tabs { display: flex; flex-direction: column; margin-top: 4px; gap: 3px; }
         .tab { display: flex; align-items: center; gap: 12px; padding: 13px 14px; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; color: #AEC0DC; text-decoration: none; border-radius: 10px; }
         .tab svg { width: 18px; height: 18px; flex-shrink: 0; }
-        .tab.active { background: var(--blue-active); color: #FFFFFF; box-shadow: 0 4px 12px rgba(47,128,237,0.35); }
+        .tab.active { background: var(--blue-active); color: #FFFFFF; box-shadow: 0 4px 12px rgba(31,157,92,0.35); }
         .tab:not(.active):hover { background: rgba(201,214,234,0.08); color: #FFFFFF; }
         .sidebar-footer { margin-top: auto; padding: 16px 14px 0; border-top: 1px solid rgba(201,214,234,0.15); }
         .sidebar-footer button { width: 100%; display: flex; align-items: center; gap: 10px; background: none; border: none; color: #AEC0DC; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; padding: 10px 0; cursor: pointer; }
@@ -110,12 +110,12 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 8px 24px rgba(6,43,87,0.35);
+            box-shadow: 0 8px 24px rgba(20,107,63,0.35);
             text-decoration: none;
             z-index: 999;
             transition: transform .15s ease, box-shadow .15s ease;
         }
-        .chat-fab:hover { transform: translateY(-3px) scale(1.04); box-shadow: 0 12px 28px rgba(6,43,87,0.4); }
+        .chat-fab:hover { transform: translateY(-3px) scale(1.04); box-shadow: 0 12px 28px rgba(20,107,63,0.4); }
         .chat-fab img { width: 40px; height: 40px; object-fit: contain; border-radius: 50%; }
         .chat-fab .chat-fab-tooltip {
             position: absolute;
