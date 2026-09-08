@@ -7,6 +7,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import com.uteq.asistente_academico.exception.ApiExternaException;
 import com.uteq.asistente_academico.exception.EntregaException;
+import com.uteq.asistente_academico.exception.RespaldoException;
 import org.springframework.lang.Nullable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -29,18 +30,18 @@ import java.net.URI;
  * login) no pasan por aqui.
  */
 @RestControllerAdvice
-<span class="fc" id="L32">public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {</span>
+<span class="fc" id="L33">public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {</span>
 
     @ExceptionHandler(Exception.class)
     public ProblemDetail manejarExcepcionGeneral(Exception ex, WebRequest request) {
-<span class="nc" id="L36">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+<span class="nc" id="L37">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 &quot;Ocurrio un error inesperado al procesar la solicitud.&quot;
         );
-<span class="nc" id="L40">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/error-interno&quot;));</span>
-<span class="nc" id="L41">        problema.setTitle(&quot;Error interno del servidor&quot;);</span>
-<span class="nc" id="L42">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
-<span class="nc" id="L43">        return problema;</span>
+<span class="nc" id="L41">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/error-interno&quot;));</span>
+<span class="nc" id="L42">        problema.setTitle(&quot;Error interno del servidor&quot;);</span>
+<span class="nc" id="L43">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
+<span class="nc" id="L44">        return problema;</span>
     }
 
     /**
@@ -53,14 +54,14 @@ import java.net.URI;
      */
     @ExceptionHandler(AccessDeniedException.class)
     public ProblemDetail manejarAccesoDenegado(AccessDeniedException ex, WebRequest request) {
-<span class="fc" id="L56">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+<span class="fc" id="L57">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
                 HttpStatus.FORBIDDEN,
                 &quot;Tu rol no tiene permiso para acceder a este recurso.&quot;
         );
-<span class="fc" id="L60">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/rol-insuficiente&quot;));</span>
-<span class="fc" id="L61">        problema.setTitle(&quot;Acceso prohibido&quot;);</span>
-<span class="fc" id="L62">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
-<span class="fc" id="L63">        return problema;</span>
+<span class="fc" id="L61">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/rol-insuficiente&quot;));</span>
+<span class="fc" id="L62">        problema.setTitle(&quot;Acceso prohibido&quot;);</span>
+<span class="fc" id="L63">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
+<span class="fc" id="L64">        return problema;</span>
     }
 
     /**
@@ -72,11 +73,11 @@ import java.net.URI;
      */
     @ExceptionHandler(ApiExternaException.class)
     public ProblemDetail manejarApiExterna(ApiExternaException ex, WebRequest request) {
-<span class="nc" id="L75">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());</span>
-<span class="nc" id="L76">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/api-externa&quot;));</span>
-<span class="nc" id="L77">        problema.setTitle(&quot;Fallo en servicio externo&quot;);</span>
-<span class="nc" id="L78">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
-<span class="nc" id="L79">        return problema;</span>
+<span class="nc" id="L76">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());</span>
+<span class="nc" id="L77">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/api-externa&quot;));</span>
+<span class="nc" id="L78">        problema.setTitle(&quot;Fallo en servicio externo&quot;);</span>
+<span class="nc" id="L79">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
+<span class="nc" id="L80">        return problema;</span>
     }
 
     /**
@@ -88,11 +89,25 @@ import java.net.URI;
      */
     @ExceptionHandler(EntregaException.class)
     public ProblemDetail manejarEntrega(EntregaException ex, WebRequest request) {
-<span class="fc" id="L91">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());</span>
-<span class="fc" id="L92">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/&quot; + ex.getTipo()));</span>
-<span class="fc" id="L93">        problema.setTitle(ex.getTitulo());</span>
-<span class="fc" id="L94">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
-<span class="fc" id="L95">        return problema;</span>
+<span class="fc" id="L92">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());</span>
+<span class="fc" id="L93">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/&quot; + ex.getTipo()));</span>
+<span class="fc" id="L94">        problema.setTitle(ex.getTitulo());</span>
+<span class="fc" id="L95">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
+<span class="fc" id="L96">        return problema;</span>
+    }
+
+    /**
+     * Lanzada por RespaldoService cuando pg_dump/pg_restore/dropdb/
+     * createdb fallan o no se pueden ejecutar. Mismo patron que
+     * manejarEntrega.
+     */
+    @ExceptionHandler(RespaldoException.class)
+    public ProblemDetail manejarRespaldo(RespaldoException ex, WebRequest request) {
+<span class="nc" id="L106">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());</span>
+<span class="nc" id="L107">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/&quot; + ex.getTipo()));</span>
+<span class="nc" id="L108">        problema.setTitle(ex.getTitulo());</span>
+<span class="nc" id="L109">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
+<span class="nc" id="L110">        return problema;</span>
     }
 
     /**
@@ -111,26 +126,26 @@ import java.net.URI;
     @Nullable
     protected ResponseEntity&lt;Object&gt; handleMaxUploadSizeExceededException(
             MaxUploadSizeExceededException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
-<span class="nc" id="L114">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+<span class="nc" id="L129">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
                 HttpStatus.BAD_REQUEST, &quot;El archivo supera el tamaño máximo permitido (10MB).&quot;);
-<span class="nc" id="L116">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/tamano-excedido&quot;));</span>
-<span class="nc" id="L117">        problema.setTitle(&quot;Archivo demasiado grande&quot;);</span>
-<span class="nc" id="L118">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
-<span class="nc" id="L119">        return ResponseEntity.status(HttpStatus.BAD_REQUEST)</span>
-<span class="nc" id="L120">                .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)</span>
-<span class="nc" id="L121">                .body(problema);</span>
+<span class="nc" id="L131">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/tamano-excedido&quot;));</span>
+<span class="nc" id="L132">        problema.setTitle(&quot;Archivo demasiado grande&quot;);</span>
+<span class="nc" id="L133">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
+<span class="nc" id="L134">        return ResponseEntity.status(HttpStatus.BAD_REQUEST)</span>
+<span class="nc" id="L135">                .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)</span>
+<span class="nc" id="L136">                .body(problema);</span>
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail manejarArgumentoInvalido(IllegalArgumentException ex, WebRequest request) {
-<span class="nc" id="L126">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+<span class="nc" id="L141">        ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
                 HttpStatus.BAD_REQUEST,
-<span class="nc" id="L128">                ex.getMessage()</span>
+<span class="nc" id="L143">                ex.getMessage()</span>
         );
-<span class="nc" id="L130">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/argumento-invalido&quot;));</span>
-<span class="nc" id="L131">        problema.setTitle(&quot;Argumento invalido&quot;);</span>
-<span class="nc" id="L132">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
-<span class="nc" id="L133">        return problema;</span>
+<span class="nc" id="L145">        problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/argumento-invalido&quot;));</span>
+<span class="nc" id="L146">        problema.setTitle(&quot;Argumento invalido&quot;);</span>
+<span class="nc" id="L147">        problema.setInstance(URI.create(request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)));</span>
+<span class="nc" id="L148">        return problema;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

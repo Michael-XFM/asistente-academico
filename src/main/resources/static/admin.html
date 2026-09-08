@@ -107,6 +107,29 @@
         }
         .error-note { color: var(--alert); }
 
+        /* ---------- Respaldos ---------- */
+        .btn-primary {
+            background: var(--blue-active); color: #FFFFFF; border: none; padding: 11px 18px;
+            border-radius: 10px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+            cursor: pointer; box-shadow: 0 4px 12px rgba(47,128,237,0.28);
+        }
+        .btn-primary:hover:not(:disabled) { background: var(--blue-academic); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+        .form-msg { font-size: 12.5px; padding: 9px 12px; border-radius: 8px; margin-bottom: 16px; display: none; }
+        .form-msg.show { display: block; }
+        .form-msg.error { background: #FBEAE7; color: var(--alert); }
+        .form-msg.success { background: var(--soft-green); color: var(--green); }
+
+        .table-actions { display: flex; gap: 6px; }
+        .table-actions button {
+            background: none; border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px;
+            font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: var(--blue-academic); cursor: pointer;
+        }
+        .table-actions button:hover { border-color: var(--blue-active); background: var(--soft-blue); }
+        .table-actions button.danger { color: var(--alert); }
+        .table-actions button.danger:hover { border-color: var(--alert); background: #FBEAE7; }
+
         @media (max-width: 860px) {
             .layout { grid-template-columns: 1fr; }
             .sidebar { flex-direction: row; overflow-x: auto; padding: 12px; }
@@ -135,6 +158,10 @@
             <button class="tab" data-panel="panelTareas" onclick="mostrarPanel('panelTareas', this)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="17" rx="1"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>
                 Todas las tareas
+            </button>
+            <button class="tab" data-panel="panelRespaldos" onclick="mostrarPanel('panelRespaldos', this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
+                Respaldos
             </button>
         </nav>
         <div class="sidebar-footer">
@@ -173,6 +200,21 @@
                 <button id="btnPagAnterior" onclick="cambiarPaginaTareas(-1)">← Anterior</button>
                 <span id="pagInfo"></span>
                 <button id="btnPagSiguiente" onclick="cambiarPaginaTareas(1)">Siguiente →</button>
+            </div>
+        </div>
+
+        <!-- ---------- Panel: Respaldos ---------- -->
+        <div class="panel" id="panelRespaldos">
+            <div class="section-head">
+                <h2>Respaldos</h2>
+                <span class="page-sub" id="respaldosSub" style="margin:0;">Cargando…</span>
+            </div>
+            <div class="form-msg" id="msgRespaldos"></div>
+            <button type="button" class="btn-primary" id="btnGenerarRespaldo" onclick="generarRespaldo()" style="width:auto; margin-bottom:20px;">
+                Generar respaldo ahora
+            </button>
+            <div id="respaldosCont">
+                <div class="loading-note">Cargando respaldos…</div>
             </div>
         </div>
     </main>
@@ -341,6 +383,142 @@
         cargarTareas();
     }
 
+    // ---------- Respaldos ----------
+    function formatearFechaHora(iso) {
+        if (!iso) return '—';
+        return iso.slice(0, 10) + ' ' + iso.slice(11, 16);
+    }
+
+    function formatearBytes(bytes) {
+        if (!bytes) return '0 B';
+        const unidades = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(1024));
+        const valor = bytes / Math.pow(1024, i);
+        return valor.toFixed(i === 0 ? 0 : 1) + ' ' + unidades[i];
+    }
+
+    function mostrarMensajeRespaldos(texto, tipo) {
+        const box = document.getElementById('msgRespaldos');
+        box.className = 'form-msg show ' + tipo;
+        box.textContent = texto;
+    }
+
+    async function cargarRespaldos() {
+        const cont = document.getElementById('respaldosCont');
+        try {
+            const resp = await fetch('https://localhost:8443/api/admin/respaldos', { headers: headers() });
+            if (manejarSesionInvalida(resp.status)) return;
+            if (!resp.ok) throw new Error();
+            const respaldos = await resp.json();
+
+            document.getElementById('respaldosSub').textContent =
+                respaldos.length + (respaldos.length === 1 ? ' respaldo disponible' : ' respaldos disponibles');
+
+            if (!respaldos.length) {
+                cont.innerHTML = '<div class="empty-note">Todavía no se generó ningún respaldo.</div>';
+                return;
+            }
+
+            cont.innerHTML = '<div class="table-card"><table>' +
+                '<thead><tr><th>Fecha</th><th>Archivo</th><th>Tamaño</th><th>Acciones</th></tr></thead>' +
+                '<tbody>' +
+                respaldos.map(function (r) {
+                    return '<tr>' +
+                        '<td>' + formatearFechaHora(r.fechaModificacion) + '</td>' +
+                        '<td><span class="ticket-code">' + escapeHtml(r.nombreArchivo) + '</span></td>' +
+                        '<td>' + formatearBytes(r.tamanoBytes) + '</td>' +
+                        '<td class="table-actions">' +
+                            '<button type="button" data-nombre="' + escapeHtml(r.nombreArchivo) + '" onclick="descargarRespaldoArchivo(this.dataset.nombre)">Descargar</button>' +
+                            '<button type="button" class="danger" data-nombre="' + escapeHtml(r.nombreArchivo) + '" onclick="restaurarRespaldo(this.dataset.nombre)">Restaurar</button>' +
+                        '</td>' +
+                    '</tr>';
+                }).join('') +
+                '</tbody></table></div>';
+        } catch (e) {
+            cont.innerHTML = '<div class="error-note">No se pudo cargar el historial de respaldos.</div>';
+        }
+    }
+
+    async function generarRespaldo() {
+        const boton = document.getElementById('btnGenerarRespaldo');
+        const textoOriginal = boton.textContent;
+        boton.disabled = true;
+        boton.textContent = 'Generando respaldo… (puede tardar unos segundos)';
+        document.getElementById('msgRespaldos').className = 'form-msg';
+        try {
+            const resp = await fetch('https://localhost:8443/api/admin/respaldos', { method: 'POST', headers: headers() });
+            if (manejarSesionInvalida(resp.status)) return;
+            if (!resp.ok) {
+                // El backend devuelve ProblemDetail (RFC 7807) con el motivo
+                // real (ej. pg_dump fallo) -- se muestra ese mensaje
+                // especifico en vez de uno generico.
+                const problema = await resp.json().catch(function () { return null; });
+                throw new Error(problema && problema.detail ? problema.detail : 'No se pudo generar el respaldo.');
+            }
+            const datos = await resp.json();
+            mostrarMensajeRespaldos(
+                'Respaldo generado: ' + datos.nombreArchivo + ' (' + formatearBytes(datos.tamanoBytes) + ').',
+                'success'
+            );
+            await cargarRespaldos();
+        } catch (e) {
+            mostrarMensajeRespaldos(e.message || 'No se pudo generar el respaldo.', 'error');
+        } finally {
+            boton.disabled = false;
+            boton.textContent = textoOriginal;
+        }
+    }
+
+    async function descargarRespaldoArchivo(nombreArchivo) {
+        try {
+            const resp = await fetch('https://localhost:8443/api/admin/respaldos/' + encodeURIComponent(nombreArchivo) + '/archivo', {
+                headers: headers()
+            });
+            if (manejarSesionInvalida(resp.status)) return;
+            if (!resp.ok) {
+                const problema = await resp.json().catch(function () { return null; });
+                throw new Error(problema && problema.detail ? problema.detail : 'No se pudo descargar el respaldo.');
+            }
+            const blob = await resp.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = nombreArchivo;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (e) {
+            alert(e.message || 'No se pudo descargar el respaldo.');
+        }
+    }
+
+    async function restaurarRespaldo(nombreArchivo) {
+        // Sobreescribe por completo la base de prueba anterior (no la
+        // real) -- confirmacion explicita antes de ejecutar.
+        if (!confirm('¿Restaurar "' + nombreArchivo + '" en la base de prueba? Esto reemplaza por completo lo que haya ahí ahora (no afecta la base real).')) {
+            return;
+        }
+        try {
+            const resp = await fetch('https://localhost:8443/api/admin/respaldos/' + encodeURIComponent(nombreArchivo) + '/restaurar', {
+                method: 'POST',
+                headers: headers()
+            });
+            if (manejarSesionInvalida(resp.status)) return;
+            if (!resp.ok) {
+                const problema = await resp.json().catch(function () { return null; });
+                throw new Error(problema && problema.detail ? problema.detail : 'No se pudo restaurar el respaldo.');
+            }
+            const datos = await resp.json();
+            mostrarMensajeRespaldos(
+                'Restauración completada: la base de prueba quedó con ' + datos.conteoUsuarios + ' usuario(s).',
+                'success'
+            );
+        } catch (e) {
+            mostrarMensajeRespaldos(e.message || 'No se pudo restaurar el respaldo.', 'error');
+        }
+    }
+
     function cerrarSesion() {
         localStorage.clear();
         window.location.href = 'index.html';
@@ -348,6 +526,7 @@
 
     cargarUsuarios();
     cargarTareas();
+    cargarRespaldos();
 </script>
 </body>
 </html>

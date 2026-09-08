@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RespaldoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">com.uteq.asistente_academico.service</a> &gt; <span class="el_source">RespaldoService.java</span></div><h1>RespaldoService.java</h1><pre class="source lang-java linenums">package com.uteq.asistente_academico.service;
+
+import com.uteq.asistente_academico.dto.RespaldoInfo;
+import com.uteq.asistente_academico.dto.RespaldoResumen;
+import com.uteq.asistente_academico.dto.RestauracionInfo;
+import com.uteq.asistente_academico.exception.RespaldoException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
+import java.util.List;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+/**
+ * Respaldo y restauracion administrativa de la base de datos (pg_dump/
+ * pg_restore). Corre con las credenciales del OWNER (postgres), no con
+ * el rol acotado app_academico que usa el resto de la app -- ver
+ * application.properties (admin.backup.db.*) para el porque.
+ *
+ * La restauracion SIEMPRE va a una base alterna (asistente_academico_
+ * restore), nunca sobre la base real -- se recrea desde cero en cada
+ * restauracion para no arrastrar basura de una anterior.
+ */
+@Service
+<span class="fc" id="L44">public class RespaldoService {</span>
+
+<span class="fc" id="L46">    private static final Logger log = LoggerFactory.getLogger(RespaldoService.class);</span>
+<span class="fc" id="L47">    private static final DateTimeFormatter FORMATO_NOMBRE = DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd_HHmm&quot;);</span>
+<span class="fc" id="L48">    private static final Pattern PATRON_NOMBRE_ARCHIVO =</span>
+<span class="fc" id="L49">            Pattern.compile(&quot;^asistente_academico_\\d{4}-\\d{2}-\\d{2}_\\d{4}\\.dump$&quot;);</span>
+    private static final String BASE_ALTERNA = &quot;asistente_academico_restore&quot;;
+
+    @Value(&quot;${admin.backup.db.host}&quot;)
+    private String host;
+
+    @Value(&quot;${admin.backup.db.port}&quot;)
+    private String port;
+
+    @Value(&quot;${admin.backup.db.name}&quot;)
+    private String nombreBase;
+
+    @Value(&quot;${admin.backup.db.user}&quot;)
+    private String usuario;
+
+    @Value(&quot;${admin.backup.db.password}&quot;)
+    private String password;
+
+    @Value(&quot;${admin.backup.storage.path}&quot;)
+    private String storagePath;
+
+    public RespaldoInfo crearRespaldo() {
+<span class="nc" id="L71">        Path directorio = Paths.get(storagePath);</span>
+        try {
+<span class="nc" id="L73">            Files.createDirectories(directorio);</span>
+<span class="nc" id="L74">        } catch (IOException e) {</span>
+<span class="nc" id="L75">            throw new RespaldoException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;error-directorio-respaldo&quot;,</span>
+                    &quot;Error al preparar el respaldo&quot;, &quot;No se pudo crear el directorio de respaldos.&quot;);
+<span class="nc" id="L77">        }</span>
+
+<span class="nc" id="L79">        String nombreArchivo = &quot;asistente_academico_&quot; + LocalDateTime.now().format(FORMATO_NOMBRE) + &quot;.dump&quot;;</span>
+<span class="nc" id="L80">        Path destino = directorio.resolve(nombreArchivo);</span>
+
+<span class="nc" id="L82">        ResultadoProceso resultado = ejecutar(</span>
+<span class="nc" id="L83">                &quot;pg_dump&quot;, &quot;-h&quot;, host, &quot;-p&quot;, port, &quot;-U&quot;, usuario, &quot;-d&quot;, nombreBase, &quot;-Fc&quot;, &quot;-f&quot;, destino.toString());</span>
+
+<span class="nc bnc" id="L85" title="All 2 branches missed.">        if (resultado.codigoSalida() != 0) {</span>
+<span class="nc" id="L86">            log.warn(&quot;BACKUP_ERROR | codigoSalida={} | timestamp={}&quot;, resultado.codigoSalida(), Instant.now());</span>
+            // pg_dump con -f crea/trunca el archivo de destino ANTES de
+            // conectarse -- si despues falla, no debe quedar un .dump
+            // vacio o a medio escribir confundiendose con un respaldo
+            // valido en el listado.
+            try {
+<span class="nc" id="L92">                Files.deleteIfExists(destino);</span>
+<span class="nc" id="L93">            } catch (IOException ignored) {</span>
+                // No se relanza: prioridad es reportar el error real de
+                // pg_dump, no un problema secundario de limpieza.
+<span class="nc" id="L96">            }</span>
+<span class="nc" id="L97">            throw new RespaldoException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;pg-dump-fallo&quot;,</span>
+                    &quot;El respaldo falló&quot;,
+<span class="nc" id="L99">                    &quot;pg_dump terminó con código &quot; + resultado.codigoSalida() + &quot;: &quot; + resultado.errorSalida().trim());</span>
+        }
+
+        long tamanoBytes;
+        try {
+<span class="nc" id="L104">            tamanoBytes = Files.size(destino);</span>
+<span class="nc" id="L105">        } catch (IOException e) {</span>
+<span class="nc" id="L106">            throw new RespaldoException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;error-tamano-respaldo&quot;,</span>
+                    &quot;Respaldo generado con advertencia&quot;,
+                    &quot;El respaldo se generó pero no se pudo leer su tamaño.&quot;);
+<span class="nc" id="L109">        }</span>
+
+<span class="nc" id="L111">        log.info(&quot;BACKUP_EXITO | archivo={} | tamanoBytes={} | timestamp={}&quot;, nombreArchivo, tamanoBytes, Instant.now());</span>
+<span class="nc" id="L112">        return new RespaldoInfo(nombreArchivo, tamanoBytes);</span>
+    }
+
+    public List&lt;RespaldoResumen&gt; listarRespaldos() {
+<span class="nc" id="L116">        Path directorio = Paths.get(storagePath);</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">        if (!Files.isDirectory(directorio)) {</span>
+<span class="nc" id="L118">            return List.of();</span>
+        }
+<span class="nc" id="L120">        try (Stream&lt;Path&gt; archivos = Files.list(directorio)) {</span>
+<span class="nc" id="L121">            return archivos</span>
+<span class="nc" id="L122">                    .filter(p -&gt; p.getFileName().toString().endsWith(&quot;.dump&quot;))</span>
+<span class="nc" id="L123">                    .map(this::aResumen)</span>
+<span class="nc" id="L124">                    .sorted(Comparator.comparing(RespaldoResumen::fechaModificacion).reversed())</span>
+<span class="nc" id="L125">                    .collect(Collectors.toList());</span>
+<span class="nc" id="L126">        } catch (IOException e) {</span>
+<span class="nc" id="L127">            throw new RespaldoException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;error-listar-respaldos&quot;,</span>
+                    &quot;Error al listar respaldos&quot;, &quot;No se pudo leer el directorio de respaldos.&quot;);
+        }
+    }
+
+    /**
+     * Restaura nombreArchivo en la base alterna (nunca en la real),
+     * recreandola desde cero, y devuelve un conteo basico (usuarios)
+     * como confirmacion de que trajo datos reales.
+     */
+    public RestauracionInfo restaurar(String nombreArchivo) {
+<span class="nc" id="L138">        Path archivo = resolverArchivoValidado(nombreArchivo);</span>
+<span class="nc" id="L139">        recrearBaseAlterna();</span>
+<span class="nc" id="L140">        ejecutarPgRestore(archivo);</span>
+<span class="nc" id="L141">        long conteoUsuarios = contarUsuariosEnBaseAlterna();</span>
+<span class="nc" id="L142">        log.info(&quot;RESTAURACION_EXITO | archivo={} | conteoUsuarios={} | timestamp={}&quot;,</span>
+<span class="nc" id="L143">                nombreArchivo, conteoUsuarios, Instant.now());</span>
+<span class="nc" id="L144">        return new RestauracionInfo(nombreArchivo, conteoUsuarios);</span>
+    }
+
+    /**
+     * Resuelve el archivo para descarga -- misma validacion (regex +
+     * contencion de ruta) que usa restaurar(), factorizada en
+     * resolverArchivoValidado() para no duplicarla.
+     */
+    public Path obtenerArchivoParaDescarga(String nombreArchivo) {
+<span class="nc" id="L153">        return resolverArchivoValidado(nombreArchivo);</span>
+    }
+
+    /**
+     * Doble validacion contra path traversal: (1) el nombre tiene que
+     * matchear exactamente el formato que genera crearRespaldo() (sin
+     * &quot;/&quot;, &quot;\&quot; ni &quot;..&quot; posibles en ese patron); (2) igual se resuelve
+     * la ruta y se confirma que el resultado sigue estando DENTRO del
+     * directorio de respaldos, como defensa en profundidad.
+     */
+    private Path resolverArchivoValidado(String nombreArchivo) {
+<span class="nc bnc" id="L164" title="All 4 branches missed.">        if (nombreArchivo == null || !PATRON_NOMBRE_ARCHIVO.matcher(nombreArchivo).matches()) {</span>
+<span class="nc" id="L165">            throw new RespaldoException(HttpStatus.BAD_REQUEST, &quot;nombre-archivo-invalido&quot;,</span>
+                    &quot;Nombre de archivo inválido&quot;,
+                    &quot;El nombre de archivo no tiene un formato válido de respaldo.&quot;);
+        }
+
+<span class="nc" id="L170">        Path directorio = Paths.get(storagePath).toAbsolutePath().normalize();</span>
+<span class="nc" id="L171">        Path archivo = directorio.resolve(nombreArchivo).normalize();</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">        if (!archivo.getParent().equals(directorio)) {</span>
+<span class="nc" id="L173">            throw new RespaldoException(HttpStatus.BAD_REQUEST, &quot;nombre-archivo-invalido&quot;,</span>
+                    &quot;Nombre de archivo inválido&quot;,
+                    &quot;El nombre de archivo no tiene un formato válido de respaldo.&quot;);
+        }
+
+<span class="nc bnc" id="L178" title="All 2 branches missed.">        if (!Files.isRegularFile(archivo)) {</span>
+<span class="nc" id="L179">            throw new RespaldoException(HttpStatus.NOT_FOUND, &quot;respaldo-no-encontrado&quot;,</span>
+                    &quot;Respaldo no encontrado&quot;,
+                    &quot;No existe un respaldo con el nombre &quot; + nombreArchivo + &quot;.&quot;);
+        }
+<span class="nc" id="L183">        return archivo;</span>
+    }
+
+    private void recrearBaseAlterna() {
+<span class="nc" id="L187">        ResultadoProceso drop = ejecutar(&quot;dropdb&quot;, &quot;-h&quot;, host, &quot;-p&quot;, port, &quot;-U&quot;, usuario, &quot;--if-exists&quot;, BASE_ALTERNA);</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">        if (drop.codigoSalida() != 0) {</span>
+<span class="nc" id="L189">            throw new RespaldoException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;error-drop-base-alterna&quot;,</span>
+                    &quot;Error al recrear la base alterna&quot;,
+<span class="nc" id="L191">                    &quot;dropdb terminó con código &quot; + drop.codigoSalida() + &quot;: &quot; + drop.errorSalida().trim());</span>
+        }
+
+<span class="nc" id="L194">        ResultadoProceso create = ejecutar(&quot;createdb&quot;, &quot;-h&quot;, host, &quot;-p&quot;, port, &quot;-U&quot;, usuario, &quot;-T&quot;, &quot;template0&quot;, BASE_ALTERNA);</span>
+<span class="nc bnc" id="L195" title="All 2 branches missed.">        if (create.codigoSalida() != 0) {</span>
+<span class="nc" id="L196">            throw new RespaldoException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;error-create-base-alterna&quot;,</span>
+                    &quot;Error al recrear la base alterna&quot;,
+<span class="nc" id="L198">                    &quot;createdb terminó con código &quot; + create.codigoSalida() + &quot;: &quot; + create.errorSalida().trim());</span>
+        }
+<span class="nc" id="L200">    }</span>
+
+    private void ejecutarPgRestore(Path archivo) {
+<span class="nc" id="L203">        ResultadoProceso resultado = ejecutar(</span>
+<span class="nc" id="L204">                &quot;pg_restore&quot;, &quot;-h&quot;, host, &quot;-p&quot;, port, &quot;-U&quot;, usuario, &quot;-d&quot;, BASE_ALTERNA, archivo.toString());</span>
+<span class="nc bnc" id="L205" title="All 2 branches missed.">        if (resultado.codigoSalida() != 0) {</span>
+<span class="nc" id="L206">            throw new RespaldoException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;pg-restore-fallo&quot;,</span>
+                    &quot;La restauración falló&quot;,
+<span class="nc" id="L208">                    &quot;pg_restore terminó con código &quot; + resultado.codigoSalida() + &quot;: &quot; + resultado.errorSalida().trim());</span>
+        }
+<span class="nc" id="L210">    }</span>
+
+    /**
+     * Conexion JDBC puntual (no la del EntityManager de Spring, que
+     * apunta a la base real con el rol acotado) contra la base alterna,
+     * solo para la verificacion basica post-restauracion.
+     */
+    private long contarUsuariosEnBaseAlterna() {
+<span class="nc" id="L218">        String url = &quot;jdbc:postgresql://&quot; + host + &quot;:&quot; + port + &quot;/&quot; + BASE_ALTERNA;</span>
+<span class="nc" id="L219">        try (Connection conexion = DriverManager.getConnection(url, usuario, password);</span>
+<span class="nc" id="L220">             Statement statement = conexion.createStatement();</span>
+<span class="nc" id="L221">             ResultSet resultado = statement.executeQuery(&quot;SELECT COUNT(*) FROM usuarios&quot;)) {</span>
+<span class="nc" id="L222">            resultado.next();</span>
+<span class="nc" id="L223">            return resultado.getLong(1);</span>
+<span class="nc" id="L224">        } catch (SQLException e) {</span>
+            // Nunca se incluye e.getMessage() en la excepcion: no hace
+            // falta razonar caso por caso si un mensaje JDBC podria
+            // llegar a ecoar la contrasena, alcanza con no propagarlo.
+<span class="nc" id="L228">            throw new RespaldoException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;error-verificacion-restauracion&quot;,</span>
+                    &quot;Restauración sin verificar&quot;,
+                    &quot;La base se restauró pero no se pudo verificar el conteo de usuarios.&quot;);
+        }
+    }
+
+    private RespaldoResumen aResumen(Path archivo) {
+        try {
+<span class="nc" id="L236">            BasicFileAttributes atributos = Files.readAttributes(archivo, BasicFileAttributes.class);</span>
+<span class="nc" id="L237">            return new RespaldoResumen(</span>
+<span class="nc" id="L238">                    archivo.getFileName().toString(),</span>
+<span class="nc" id="L239">                    atributos.size(),</span>
+<span class="nc" id="L240">                    atributos.lastModifiedTime().toInstant()</span>
+            );
+<span class="nc" id="L242">        } catch (IOException e) {</span>
+<span class="nc" id="L243">            throw new RespaldoException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;error-metadatos-respaldo&quot;,</span>
+                    &quot;Error al listar respaldos&quot;,
+<span class="nc" id="L245">                    &quot;No se pudieron leer los metadatos de &quot; + archivo.getFileName() + &quot;.&quot;);</span>
+        }
+    }
+
+    /**
+     * Corre un comando externo (pg_dump/pg_restore/dropdb/createdb) con
+     * PGPASSWORD SOLO en el entorno del proceso hijo -- nunca como
+     * argumento (visible via ps/logs de proceso) ni en ningun log. Los
+     * mensajes de error de Postgres para fallos de autenticacion dicen
+     * &quot;password authentication failed for user X&quot;, nunca el valor real
+     * de la clave, asi que devolver errorSalida tal cual en el
+     * ProblemDetail del llamador es seguro.
+     */
+    private ResultadoProceso ejecutar(String... comando) {
+<span class="nc" id="L259">        ProcessBuilder procesoBuilder = new ProcessBuilder(comando);</span>
+<span class="nc" id="L260">        procesoBuilder.environment().put(&quot;PGPASSWORD&quot;, password);</span>
+
+        Process proceso;
+        try {
+<span class="nc" id="L264">            proceso = procesoBuilder.start();</span>
+<span class="nc" id="L265">        } catch (IOException e) {</span>
+<span class="nc" id="L266">            throw new RespaldoException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;error-iniciar-proceso&quot;,</span>
+                    &quot;Error al iniciar el proceso&quot;, &quot;No se pudo iniciar &quot; + comando[0] + &quot;.&quot;);
+<span class="nc" id="L268">        }</span>
+
+        try {
+<span class="nc" id="L271">            String errorSalida = new String(proceso.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);</span>
+<span class="nc" id="L272">            int codigoSalida = proceso.waitFor();</span>
+<span class="nc" id="L273">            return new ResultadoProceso(codigoSalida, errorSalida);</span>
+<span class="nc" id="L274">        } catch (IOException | InterruptedException e) {</span>
+<span class="nc" id="L275">            Thread.currentThread().interrupt();</span>
+<span class="nc" id="L276">            throw new RespaldoException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;error-esperando-proceso&quot;,</span>
+                    &quot;Error al esperar el proceso&quot;, &quot;Se interrumpió la espera de &quot; + comando[0] + &quot;.&quot;);
+        }
+    }
+
+<span class="nc" id="L281">    private record ResultadoProceso(int codigoSalida, String errorSalida) {</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

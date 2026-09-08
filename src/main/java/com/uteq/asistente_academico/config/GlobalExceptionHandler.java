@@ -7,6 +7,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import com.uteq.asistente_academico.exception.ApiExternaException;
 import com.uteq.asistente_academico.exception.EntregaException;
+import com.uteq.asistente_academico.exception.RespaldoException;
 import org.springframework.lang.Nullable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -88,6 +89,20 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      */
     @ExceptionHandler(EntregaException.class)
     public ProblemDetail manejarEntrega(EntregaException ex, WebRequest request) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());
+        problema.setType(URI.create("https://asistente-academico.uteq.edu.ec/errores/" + ex.getTipo()));
+        problema.setTitle(ex.getTitulo());
+        problema.setInstance(URI.create(request.getDescription(false).replace("uri=", "")));
+        return problema;
+    }
+
+    /**
+     * Lanzada por RespaldoService cuando pg_dump/pg_restore/dropdb/
+     * createdb fallan o no se pueden ejecutar. Mismo patron que
+     * manejarEntrega.
+     */
+    @ExceptionHandler(RespaldoException.class)
+    public ProblemDetail manejarRespaldo(RespaldoException ex, WebRequest request) {
         ProblemDetail problema = ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());
         problema.setType(URI.create("https://asistente-academico.uteq.edu.ec/errores/" + ex.getTipo()));
         problema.setTitle(ex.getTitulo());

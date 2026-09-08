@@ -12,6 +12,13 @@ RUN ./mvnw clean package -DskipTests
 
 FROM eclipse-temurin@sha256:3f08b13888f595cc49edabea7250ba69499ba25602b267da591720769400e08c
 WORKDIR /app
+# pg_dump para el respaldo administrativo (BackupService): corre DENTRO
+# de este contenedor, conectandose por red a "postgres" -- misma ruta de
+# red que ya usa JDBC, sin darle al backend acceso al socket de Docker
+# (que le permitiria controlar otros contenedores) para llegar al
+# pg_dump que ya existe en la imagen de postgres. Version 16 para que
+# coincida con el servidor (16.14).
+RUN apk add --no-cache postgresql16-client
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

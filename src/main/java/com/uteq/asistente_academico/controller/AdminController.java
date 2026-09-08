@@ -1,15 +1,24 @@
 package com.uteq.asistente_academico.controller;
 
 import com.uteq.asistente_academico.audit.Auditado;
+import com.uteq.asistente_academico.dto.RespaldoInfo;
+import com.uteq.asistente_academico.dto.RespaldoResumen;
+import com.uteq.asistente_academico.dto.RestauracionInfo;
 import com.uteq.asistente_academico.entity.Tarea;
+import com.uteq.asistente_academico.exception.RespaldoException;
 import com.uteq.asistente_academico.repository.TareaRepository;
 import com.uteq.asistente_academico.repository.UsuarioRepository;
+import com.uteq.asistente_academico.service.RespaldoService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
@@ -17,7 +26,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.nio.file.Path;
+import java.util.List;
 
 /**
  * Endpoints de administracion, todos restringidos al rol ADMIN via
@@ -44,6 +56,9 @@ public class AdminController {
 
     @Autowired
     private TareaRepository tareaRepository;
+
+    @Autowired
+    private RespaldoService respaldoService;
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/usuarios")
@@ -103,5 +118,68 @@ public class AdminController {
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(tareaRepository.findAll(pageable));
+    }
+
+    /**
+     * Genera un respaldo completo de la base (pg_dump -Fc) con las
+     * credenciales del owner (postgres) -- ver RespaldoService y
+     * application.properties (admin.backup.db.*) para el porque
+     * app_academico no alcanza. No es @Auditado: no escribe sobre
+     * ninguna de las 4 tablas auditadas, solo genera un archivo.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/respaldos")
+    public ResponseEntity<RespaldoInfo> crearRespaldo() {
+        return ResponseEntity.ok(respaldoService.crearRespaldo());
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/respaldos")
+    public ResponseEntity<List<RespaldoResumen>> listarRespaldos() {
+        return ResponseEntity.ok(respaldoService.listarRespaldos());
+    }
+
+    /**
+     * Restaura un respaldo existente a la base ALTERNA (nunca la real,
+     * ver RespaldoService.restaurar), y devuelve un conteo basico como
+     * confirmacion de que trajo datos reales. nombreArchivo se valida
+     * dentro del servicio contra path traversal antes de tocar el
+     * filesystem.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/respaldos/{nombreArchivo}/restaurar")
+    public ResponseEntity<RestauracionInfo> restaurar(@PathVariable String nombreArchivo) {
+        return ResponseEntity.ok(respaldoService.restaurar(nombreArchivo));
+    }
+
+    /**
+     * Descarga el archivo de un respaldo. La validacion de nombreArchivo
+     * (regex + contencion de ruta contra path traversal) la hace
+     * RespaldoService.obtenerArchivoParaDescarga -- misma logica que ya
+     * usa restaurar(), no duplicada aca. Mismo criterio de
+     * ContentDisposition que EntregaController.descargarArchivo.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/respaldos/{nombreArchivo}/archivo")
+    public ResponseEntity<?> descargarRespaldo(@PathVariable String nombreArchivo) {
+        Path archivo = respaldoService.obtenerArchivoParaDescarga(nombreArchivo);
+
+        try {
+            Resource recurso = new UrlResource(archivo.toUri());
+            if (!recurso.exists() || !recurso.isReadable()) {
+                throw new RespaldoException(HttpStatus.NOT_FOUND, "respaldo-no-encontrado",
+                        "Respaldo no encontrado", "No se pudo leer el archivo de respaldo.");
+            }
+            ContentDisposition disposicion = ContentDisposition.builder("attachment")
+                    .filename(archivo.getFileName().toString())
+                    .build();
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, disposicion.toString())
+                    .body(recurso);
+        } catch (MalformedURLException e) {
+            throw new RespaldoException(HttpStatus.INTERNAL_SERVER_ERROR, "error-leer-respaldo",
+                    "Error al leer el respaldo", "No se pudo leer el archivo de respaldo.");
+        }
     }
 }

@@ -76,8 +76,25 @@ services:
       # en application.properties cae en ese mismo vacio -- ChatbotService
       # lo detecta y responde 503 en vez de fallar al arrancar.
       GEMINI_API_KEY: ${GEMINI_API_KEY}
+      # Credenciales del OWNER, solo para BackupService (pg_dump
+      # administrativo, ver application.properties admin.backup.db.*).
+      # NUNCA se usan para SPRING_DATASOURCE_* de arriba -- ese sigue
+      # siendo el rol acotado app_academico.
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # Sin esto, admin.backup.db.host cae en su default de desarrollo
+      # local ("localhost", que no resuelve dentro de la red de compose)
+      # en vez de resolver al servicio "postgres".
+      DB_BACKUP_HOST: postgres
+      # Respaldos generados por BackupService. Named volume (no bind
+      # mount al repo) por el mismo motivo que entregas_data: un dump
+      # completo trae emails y hashes de contraseña, no debe poder
+      # terminar commiteado por accidente.
+      BACKUPS_STORAGE_PATH: /app/backups
     volumes:
       - entregas_data:/app/entregas
+      - backups_data:/app/backups
     depends_on:
       postgres:
         condition: service_healthy
@@ -97,3 +114,4 @@ services:
 volumes:
   postgres_data:
   entregas_data:
+  backups_data:

@@ -1,4 +1,5 @@
 GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+,com.uteq.asistente_academico.service,RespaldoService.ResultadoProceso,9,0,0,0,1,0,1,0,1,0
 ,com.uteq.asistente_academico.service,ChatbotService.GeminiRequest,9,0,0,0,1,0,1,0,1,0
 ,com.uteq.asistente_academico.service,ChatbotService.GeminiPart,6,0,0,0,1,0,1,0,1,0
 ,com.uteq.asistente_academico.service,ChatbotService.GeminiCandidate,6,0,0,0,1,0,1,0,1,0
@@ -9,6 +10,7 @@ GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_
 ,com.uteq.asistente_academico.service,AuthService,0,79,0,0,0,28,0,6,0,6
 ,com.uteq.asistente_academico.service,LoginRateLimiterService,2,55,1,5,0,10,1,8,0,6
 ,com.uteq.asistente_academico.service,EntregaService,31,466,5,29,5,88,7,31,2,19
+,com.uteq.asistente_academico.service,RespaldoService,615,13,18,0,93,5,20,2,11,2
 ,com.uteq.asistente_academico.service,RedisService,57,25,2,0,18,5,3,4,2,4
 ,com.uteq.asistente_academico.service,ChatbotService.GeminiResponse,6,0,0,0,1,0,1,0,1,0
 ,com.uteq.asistente_academico.service,ChatbotService.GeminiSystemInstruction,6,0,0,0,1,0,1,0,1,0
@@ -16,10 +18,11 @@ GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_
 ,com.uteq.asistente_academico.audit,AuditoriaTransactionRunner,0,15,0,0,0,5,0,2,0,2
 ,com.uteq.asistente_academico.audit,AuditoriaAspect,0,32,2,6,0,5,2,5,0,3
 ,com.uteq.asistente_academico.exception,EntregaException,0,22,0,0,0,8,0,4,0,4
+,com.uteq.asistente_academico.exception,RespaldoException,22,0,0,0,8,0,4,0,4,0
 ,com.uteq.asistente_academico.exception,ApiExternaException,11,0,0,0,4,0,2,0,2,0
 ,com.uteq.asistente_academico,AsistenteAcademicoApplication,5,3,0,0,2,1,1,1,1,1
 ,com.uteq.asistente_academico.config,SecurityConfig,0,124,0,0,0,23,0,11,0,11
-,com.uteq.asistente_academico.config,GlobalExceptionHandler,96,52,0,0,23,11,4,3,4,3
+,com.uteq.asistente_academico.config,GlobalExceptionHandler,123,52,0,0,28,11,5,3,5,3
 ,com.uteq.asistente_academico.config,RestTemplateConfig,0,21,0,0,0,9,0,3,0,3
 ,com.uteq.asistente_academico.config,OpenApiConfig,0,50,0,0,0,17,0,2,0,2
 ,com.uteq.asistente_academico.controller,CalificacionController.CalificacionListado,9,0,0,0,1,0,1,0,1,0
@@ -30,7 +33,7 @@ GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_
 ,com.uteq.asistente_academico.controller,ChatbotController.PreguntarResponse,6,0,0,0,1,0,1,0,1,0
 ,com.uteq.asistente_academico.controller,CalificacionController,116,3,4,0,25,1,6,1,4,1
 ,com.uteq.asistente_academico.controller,ChatbotController,44,46,3,3,8,10,4,3,1,3
-,com.uteq.asistente_academico.controller,AdminController,77,3,2,0,20,1,4,1,3,1
+,com.uteq.asistente_academico.controller,AdminController,151,3,6,0,36,1,10,1,7,1
 ,com.uteq.asistente_academico.controller,ProfesorController.CrearTareaMasivaRequest,21,0,0,0,1,0,1,0,1,0
 ,com.uteq.asistente_academico.controller,EntregaController.CalificarEntregaRequest,0,9,0,0,0,1,0,1,0,1
 ,com.uteq.asistente_academico.controller,ProfesorController.CrearCalificacionRequest,12,0,0,0,1,0,1,0,1,0
@@ -47,3 +50,6 @@ GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_
 ,com.uteq.asistente_academico.dto,ChatMensaje,9,0,0,0,1,0,1,0,1,0
 ,com.uteq.asistente_academico.dto,ResultadoFeriados,9,0,0,0,1,0,1,0,1,0
 ,com.uteq.asistente_academico.dto,EstadoEntregaEstudiante,0,30,0,0,0,1,0,1,0,1
+,com.uteq.asistente_academico.dto,RespaldoInfo,9,0,0,0,1,0,1,0,1,0
+,com.uteq.asistente_academico.dto,RespaldoResumen,12,0,0,0,1,0,1,0,1,0
+,com.uteq.asistente_academico.dto,RestauracionInfo,9,0,0,0,1,0,1,0,1,0
