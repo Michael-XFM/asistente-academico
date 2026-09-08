@@ -241,3 +241,10 @@ CREATE TABLE log_actividad (
     fecha_hora  TIMESTAMP NOT NULL,
     ip_origen   INET
 );
+
+-- Indice compuesto para "actividad de un usuario en un rango de fechas"
+-- (igualdad + rango + el mismo orden que pide la consulta). Medido
+-- contra el millon de filas real: 90.2ms (Parallel Seq Scan) -> 55.6ms
+-- (Bitmap Heap Scan) -- ver V8__indices_log_actividad.sql para el
+-- diagnostico completo de por que no llega a eliminar el Sort.
+CREATE INDEX idx_log_actividad_usuario_fecha ON log_actividad (id_usuario, fecha_hora DESC);

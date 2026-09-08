@@ -1,0 +1,12 @@
+-- V8__indices_log_actividad.sql
+-- Indice compuesto para el patron de acceso real de log_actividad:
+-- "actividad de un usuario en un rango de fechas" (id_usuario = igualdad,
+-- fecha_hora = rango). DESC en fecha_hora porque la consulta ordena por
+-- fecha_hora DESC -- deja la puerta abierta a que el planner devuelva las
+-- filas ya ordenadas desde el indice (aunque con los costos por defecto
+-- de Postgres, hoy elige Bitmap Heap Scan + Sort en vez de Index Scan
+-- puro; confirmado con EXPLAIN ANALYZE antes/despues, ver diagnostico).
+--
+-- Medido contra el millon de filas real en Docker: 90.2ms (Parallel Seq
+-- Scan) -> 55.6ms (Bitmap Heap Scan) para la misma consulta.
+CREATE INDEX idx_log_actividad_usuario_fecha ON log_actividad (id_usuario, fecha_hora DESC);
