@@ -134,6 +134,15 @@
         .table-actions button.danger:hover { border-color: var(--alert); background: #FBEAE7; }
 
         /* ---------- Auditoria ---------- */
+        /* Tarjeta de numero grande, mismo patron visual que .stat de
+           dashboard.html (.stat-row/.stat-value), pero una sola tarjeta
+           en vez de la grilla de 4 -- no hacia falta traer todo el bloque. */
+        .stat-single { max-width: 260px; margin-bottom: 24px; padding: 20px 22px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+        .stat-single .stat-label { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+        .stat-single .stat-value { font-family: 'Fraunces', serif; font-weight: 700; font-size: 30px; color: var(--navy); margin-bottom: 4px; }
+        .stat-single .stat-sub { font-size: 12.5px; color: var(--muted); }
+        .subsection-title { font-family: 'Fraunces', serif; font-size: 15px; font-weight: 700; margin: 0 0 12px; color: var(--navy); }
+
         .filters-bar { display: flex; gap: 14px; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; }
         .filters-bar .field { display: flex; flex-direction: column; gap: 5px; }
         .filters-bar label {
@@ -271,6 +280,17 @@
                 <h2>Auditoría</h2>
                 <span class="page-sub" id="auditoriaSub" style="margin:0;">Cargando…</span>
             </div>
+
+            <div class="stat-single">
+                <div class="stat-label">Eventos en log_actividad</div>
+                <div class="stat-value" id="logActividadTotal">—</div>
+                <div class="stat-sub">Carga masiva de prueba (Bloque ABD)</div>
+            </div>
+            <h3 class="subsection-title">Actividad por usuario</h3>
+            <div id="logActividadCont" style="margin-bottom:28px;">
+                <div class="loading-note">Cargando resumen de actividad…</div>
+            </div>
+
             <div class="filters-bar">
                 <div class="field">
                     <label for="filtroTabla">Tabla</label>
@@ -712,6 +732,38 @@
         document.getElementById('modalAuditoriaOverlay').classList.remove('open');
     }
 
+    // ---------- Resumen log_actividad ----------
+    async function cargarResumenLogActividad() {
+        const totalEl = document.getElementById('logActividadTotal');
+        const cont = document.getElementById('logActividadCont');
+        try {
+            const resp = await fetch('https://localhost:8443/api/admin/log-actividad/resumen', { headers: headers() });
+            if (manejarSesionInvalida(resp.status)) return;
+            if (!resp.ok) throw new Error();
+            const datos = await resp.json();
+            totalEl.textContent = datos.total.toLocaleString('es-EC');
+
+            const filas = datos.porUsuario || [];
+            if (!filas.length) {
+                cont.innerHTML = '<div class="empty-note">No hay actividad registrada.</div>';
+                return;
+            }
+            cont.innerHTML = '<div class="table-card"><table>' +
+                '<thead><tr><th>Usuario</th><th>Eventos</th></tr></thead>' +
+                '<tbody>' +
+                filas.map(function (f) {
+                    return '<tr>' +
+                        '<td>' + escapeHtml(f.nombre) + '</td>' +
+                        '<td>' + f.cantidad.toLocaleString('es-EC') + '</td>' +
+                    '</tr>';
+                }).join('') +
+                '</tbody></table></div>';
+        } catch (e) {
+            totalEl.textContent = '—';
+            cont.innerHTML = '<div class="error-note">No se pudo cargar el resumen de actividad.</div>';
+        }
+    }
+
     function cerrarSesion() {
         localStorage.clear();
         window.location.href = 'index.html';
@@ -721,6 +773,7 @@
     cargarTareas();
     cargarRespaldos();
     cargarAuditoria();
+    cargarResumenLogActividad();
 </script>
 </body>
 </html>

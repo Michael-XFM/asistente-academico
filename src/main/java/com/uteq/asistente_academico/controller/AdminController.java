@@ -2,6 +2,7 @@ package com.uteq.asistente_academico.controller;
 
 import com.uteq.asistente_academico.audit.Auditado;
 import com.uteq.asistente_academico.dto.AuditoriaResumen;
+import com.uteq.asistente_academico.dto.LogActividadResumen;
 import com.uteq.asistente_academico.dto.RespaldoInfo;
 import com.uteq.asistente_academico.dto.RespaldoResumen;
 import com.uteq.asistente_academico.dto.RestauracionInfo;
@@ -9,6 +10,7 @@ import com.uteq.asistente_academico.entity.Auditoria;
 import com.uteq.asistente_academico.entity.Tarea;
 import com.uteq.asistente_academico.exception.RespaldoException;
 import com.uteq.asistente_academico.repository.AuditoriaRepository;
+import com.uteq.asistente_academico.repository.LogActividadRepository;
 import com.uteq.asistente_academico.repository.TareaRepository;
 import com.uteq.asistente_academico.repository.UsuarioRepository;
 import com.uteq.asistente_academico.service.RespaldoService;
@@ -65,6 +67,9 @@ public class AdminController {
 
     @Autowired
     private AuditoriaRepository auditoriaRepository;
+
+    @Autowired
+    private LogActividadRepository logActividadRepository;
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/usuarios")
@@ -204,6 +209,19 @@ public class AdminController {
         Pageable pageable = PageRequest.of(page, size);
         Page<Auditoria> resultado = auditoriaRepository.buscar(tabla, usuarioApp, pageable);
         return ResponseEntity.ok(resultado.map(this::aResumen));
+    }
+
+    /**
+     * Visibilidad sobre el millon de filas de la carga masiva del Bloque
+     * ABD (ver V7__log_actividad.sql) -- total + desglose por usuario,
+     * sin tocar ninguna tabla de negocio. Solo lectura, sin @Auditado,
+     * mismo criterio que /usuarios y /auditoria.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/log-actividad/resumen")
+    public ResponseEntity<LogActividadResumen> resumenLogActividad() {
+        long total = logActividadRepository.count();
+        return ResponseEntity.ok(new LogActividadResumen(total, logActividadRepository.contarPorUsuario()));
     }
 
     private AuditoriaResumen aResumen(Auditoria a) {

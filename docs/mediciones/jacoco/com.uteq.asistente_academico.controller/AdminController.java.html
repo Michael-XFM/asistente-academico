@@ -2,6 +2,7 @@
 
 import com.uteq.asistente_academico.audit.Auditado;
 import com.uteq.asistente_academico.dto.AuditoriaResumen;
+import com.uteq.asistente_academico.dto.LogActividadResumen;
 import com.uteq.asistente_academico.dto.RespaldoInfo;
 import com.uteq.asistente_academico.dto.RespaldoResumen;
 import com.uteq.asistente_academico.dto.RestauracionInfo;
@@ -9,6 +10,7 @@ import com.uteq.asistente_academico.entity.Auditoria;
 import com.uteq.asistente_academico.entity.Tarea;
 import com.uteq.asistente_academico.exception.RespaldoException;
 import com.uteq.asistente_academico.repository.AuditoriaRepository;
+import com.uteq.asistente_academico.repository.LogActividadRepository;
 import com.uteq.asistente_academico.repository.TareaRepository;
 import com.uteq.asistente_academico.repository.UsuarioRepository;
 import com.uteq.asistente_academico.service.RespaldoService;
@@ -52,7 +54,7 @@ import java.util.List;
 @RestController
 @RequestMapping(&quot;/api/admin&quot;)
 @CrossOrigin(origins = {&quot;http://localhost:8080&quot;, &quot;http://localhost&quot;})
-<span class="fc" id="L55">public class AdminController {</span>
+<span class="fc" id="L57">public class AdminController {</span>
 
     @Autowired
     private UsuarioRepository usuarioRepository;
@@ -66,12 +68,15 @@ import java.util.List;
     @Autowired
     private AuditoriaRepository auditoriaRepository;
 
+    @Autowired
+    private LogActividadRepository logActividadRepository;
+
     @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
     @GetMapping(&quot;/usuarios&quot;)
     public ResponseEntity&lt;?&gt; listarUsuarios() {
         // Usuario.contrasena tiene @JsonIgnore, asi que el hash nunca
         // sale en esta respuesta aunque se devuelva la entidad completa.
-<span class="nc" id="L74">        return ResponseEntity.ok(usuarioRepository.findAll());</span>
+<span class="nc" id="L79">        return ResponseEntity.ok(usuarioRepository.findAll());</span>
     }
 
     /**
@@ -91,30 +96,30 @@ import java.util.List;
     @Auditado
     @DeleteMapping(&quot;/usuarios/{id}&quot;)
     public ResponseEntity&lt;?&gt; eliminarUsuario(HttpServletRequest request, @PathVariable Integer id) {
-<span class="nc bnc" id="L94" title="All 2 branches missed.">        if (!usuarioRepository.existsById(id)) {</span>
-<span class="nc" id="L95">            ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">        if (!usuarioRepository.existsById(id)) {</span>
+<span class="nc" id="L100">            ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
                     HttpStatus.NOT_FOUND, &quot;No existe un usuario con id &quot; + id + &quot;.&quot;);
-<span class="nc" id="L97">            problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/usuario-no-encontrado&quot;));</span>
-<span class="nc" id="L98">            problema.setTitle(&quot;Usuario no encontrado&quot;);</span>
-<span class="nc" id="L99">            problema.setInstance(URI.create(request.getRequestURI()));</span>
-<span class="nc" id="L100">            return ResponseEntity.status(HttpStatus.NOT_FOUND)</span>
-<span class="nc" id="L101">                    .contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
+<span class="nc" id="L102">            problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/usuario-no-encontrado&quot;));</span>
+<span class="nc" id="L103">            problema.setTitle(&quot;Usuario no encontrado&quot;);</span>
+<span class="nc" id="L104">            problema.setInstance(URI.create(request.getRequestURI()));</span>
+<span class="nc" id="L105">            return ResponseEntity.status(HttpStatus.NOT_FOUND)</span>
+<span class="nc" id="L106">                    .contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
         }
         try {
-<span class="nc" id="L104">            usuarioRepository.deleteById(id);</span>
-<span class="nc" id="L105">        } catch (DataIntegrityViolationException e) {</span>
-<span class="nc" id="L106">            ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
+<span class="nc" id="L109">            usuarioRepository.deleteById(id);</span>
+<span class="nc" id="L110">        } catch (DataIntegrityViolationException e) {</span>
+<span class="nc" id="L111">            ProblemDetail problema = ProblemDetail.forStatusAndDetail(</span>
                     HttpStatus.CONFLICT,
                     &quot;No se puede eliminar el usuario &quot; + id + &quot; porque tiene tareas, calificaciones, &quot; +
                             &quot;avisos o matrículas asociadas. Elimina o reasigna esos registros primero.&quot;
             );
-<span class="nc" id="L111">            problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/usuario-con-registros-asociados&quot;));</span>
-<span class="nc" id="L112">            problema.setTitle(&quot;Conflicto: usuario con registros asociados&quot;);</span>
-<span class="nc" id="L113">            problema.setInstance(URI.create(request.getRequestURI()));</span>
-<span class="nc" id="L114">            return ResponseEntity.status(HttpStatus.CONFLICT)</span>
-<span class="nc" id="L115">                    .contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
-<span class="nc" id="L116">        }</span>
-<span class="nc" id="L117">        return ResponseEntity.noContent().build();</span>
+<span class="nc" id="L116">            problema.setType(URI.create(&quot;https://asistente-academico.uteq.edu.ec/errores/usuario-con-registros-asociados&quot;));</span>
+<span class="nc" id="L117">            problema.setTitle(&quot;Conflicto: usuario con registros asociados&quot;);</span>
+<span class="nc" id="L118">            problema.setInstance(URI.create(request.getRequestURI()));</span>
+<span class="nc" id="L119">            return ResponseEntity.status(HttpStatus.CONFLICT)</span>
+<span class="nc" id="L120">                    .contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problema);</span>
+<span class="nc" id="L121">        }</span>
+<span class="nc" id="L122">        return ResponseEntity.noContent().build();</span>
     }
 
     @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
@@ -122,8 +127,8 @@ import java.util.List;
     public ResponseEntity&lt;Page&lt;Tarea&gt;&gt; listarTodasLasTareas(
             @RequestParam(defaultValue = &quot;0&quot;) int page,
             @RequestParam(defaultValue = &quot;10&quot;) int size) {
-<span class="nc" id="L125">        Pageable pageable = PageRequest.of(page, size);</span>
-<span class="nc" id="L126">        return ResponseEntity.ok(tareaRepository.findAll(pageable));</span>
+<span class="nc" id="L130">        Pageable pageable = PageRequest.of(page, size);</span>
+<span class="nc" id="L131">        return ResponseEntity.ok(tareaRepository.findAll(pageable));</span>
     }
 
     /**
@@ -136,13 +141,13 @@ import java.util.List;
     @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
     @PostMapping(&quot;/respaldos&quot;)
     public ResponseEntity&lt;RespaldoInfo&gt; crearRespaldo() {
-<span class="nc" id="L139">        return ResponseEntity.ok(respaldoService.crearRespaldo());</span>
+<span class="nc" id="L144">        return ResponseEntity.ok(respaldoService.crearRespaldo());</span>
     }
 
     @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
     @GetMapping(&quot;/respaldos&quot;)
     public ResponseEntity&lt;List&lt;RespaldoResumen&gt;&gt; listarRespaldos() {
-<span class="nc" id="L145">        return ResponseEntity.ok(respaldoService.listarRespaldos());</span>
+<span class="nc" id="L150">        return ResponseEntity.ok(respaldoService.listarRespaldos());</span>
     }
 
     /**
@@ -155,7 +160,7 @@ import java.util.List;
     @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
     @PostMapping(&quot;/respaldos/{nombreArchivo}/restaurar&quot;)
     public ResponseEntity&lt;RestauracionInfo&gt; restaurar(@PathVariable String nombreArchivo) {
-<span class="nc" id="L158">        return ResponseEntity.ok(respaldoService.restaurar(nombreArchivo));</span>
+<span class="nc" id="L163">        return ResponseEntity.ok(respaldoService.restaurar(nombreArchivo));</span>
     }
 
     /**
@@ -168,23 +173,23 @@ import java.util.List;
     @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
     @GetMapping(&quot;/respaldos/{nombreArchivo}/archivo&quot;)
     public ResponseEntity&lt;?&gt; descargarRespaldo(@PathVariable String nombreArchivo) {
-<span class="nc" id="L171">        Path archivo = respaldoService.obtenerArchivoParaDescarga(nombreArchivo);</span>
+<span class="nc" id="L176">        Path archivo = respaldoService.obtenerArchivoParaDescarga(nombreArchivo);</span>
 
         try {
-<span class="nc" id="L174">            Resource recurso = new UrlResource(archivo.toUri());</span>
-<span class="nc bnc" id="L175" title="All 4 branches missed.">            if (!recurso.exists() || !recurso.isReadable()) {</span>
-<span class="nc" id="L176">                throw new RespaldoException(HttpStatus.NOT_FOUND, &quot;respaldo-no-encontrado&quot;,</span>
+<span class="nc" id="L179">            Resource recurso = new UrlResource(archivo.toUri());</span>
+<span class="nc bnc" id="L180" title="All 4 branches missed.">            if (!recurso.exists() || !recurso.isReadable()) {</span>
+<span class="nc" id="L181">                throw new RespaldoException(HttpStatus.NOT_FOUND, &quot;respaldo-no-encontrado&quot;,</span>
                         &quot;Respaldo no encontrado&quot;, &quot;No se pudo leer el archivo de respaldo.&quot;);
             }
-<span class="nc" id="L179">            ContentDisposition disposicion = ContentDisposition.builder(&quot;attachment&quot;)</span>
-<span class="nc" id="L180">                    .filename(archivo.getFileName().toString())</span>
-<span class="nc" id="L181">                    .build();</span>
-<span class="nc" id="L182">            return ResponseEntity.ok()</span>
-<span class="nc" id="L183">                    .contentType(MediaType.APPLICATION_OCTET_STREAM)</span>
-<span class="nc" id="L184">                    .header(HttpHeaders.CONTENT_DISPOSITION, disposicion.toString())</span>
-<span class="nc" id="L185">                    .body(recurso);</span>
-<span class="nc" id="L186">        } catch (MalformedURLException e) {</span>
-<span class="nc" id="L187">            throw new RespaldoException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;error-leer-respaldo&quot;,</span>
+<span class="nc" id="L184">            ContentDisposition disposicion = ContentDisposition.builder(&quot;attachment&quot;)</span>
+<span class="nc" id="L185">                    .filename(archivo.getFileName().toString())</span>
+<span class="nc" id="L186">                    .build();</span>
+<span class="nc" id="L187">            return ResponseEntity.ok()</span>
+<span class="nc" id="L188">                    .contentType(MediaType.APPLICATION_OCTET_STREAM)</span>
+<span class="nc" id="L189">                    .header(HttpHeaders.CONTENT_DISPOSITION, disposicion.toString())</span>
+<span class="nc" id="L190">                    .body(recurso);</span>
+<span class="nc" id="L191">        } catch (MalformedURLException e) {</span>
+<span class="nc" id="L192">            throw new RespaldoException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;error-leer-respaldo&quot;,</span>
                     &quot;Error al leer el respaldo&quot;, &quot;No se pudo leer el archivo de respaldo.&quot;);
         }
     }
@@ -201,23 +206,36 @@ import java.util.List;
             @RequestParam(defaultValue = &quot;10&quot;) int size,
             @RequestParam(required = false) String tabla,
             @RequestParam(required = false) String usuarioApp) {
-<span class="nc" id="L204">        Pageable pageable = PageRequest.of(page, size);</span>
-<span class="nc" id="L205">        Page&lt;Auditoria&gt; resultado = auditoriaRepository.buscar(tabla, usuarioApp, pageable);</span>
-<span class="nc" id="L206">        return ResponseEntity.ok(resultado.map(this::aResumen));</span>
+<span class="nc" id="L209">        Pageable pageable = PageRequest.of(page, size);</span>
+<span class="nc" id="L210">        Page&lt;Auditoria&gt; resultado = auditoriaRepository.buscar(tabla, usuarioApp, pageable);</span>
+<span class="nc" id="L211">        return ResponseEntity.ok(resultado.map(this::aResumen));</span>
+    }
+
+    /**
+     * Visibilidad sobre el millon de filas de la carga masiva del Bloque
+     * ABD (ver V7__log_actividad.sql) -- total + desglose por usuario,
+     * sin tocar ninguna tabla de negocio. Solo lectura, sin @Auditado,
+     * mismo criterio que /usuarios y /auditoria.
+     */
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @GetMapping(&quot;/log-actividad/resumen&quot;)
+    public ResponseEntity&lt;LogActividadResumen&gt; resumenLogActividad() {
+<span class="nc" id="L223">        long total = logActividadRepository.count();</span>
+<span class="nc" id="L224">        return ResponseEntity.ok(new LogActividadResumen(total, logActividadRepository.contarPorUsuario()));</span>
     }
 
     private AuditoriaResumen aResumen(Auditoria a) {
-<span class="nc" id="L210">        return new AuditoriaResumen(</span>
-<span class="nc" id="L211">                a.getId(),</span>
-<span class="nc" id="L212">                a.getFechaHora(),</span>
-<span class="nc" id="L213">                a.getTabla(),</span>
-<span class="nc" id="L214">                a.getEsquema(),</span>
-<span class="nc" id="L215">                a.getOperacion(),</span>
-<span class="nc" id="L216">                a.getUsuarioApp(),</span>
-<span class="nc" id="L217">                a.getUsuarioBd(),</span>
-<span class="nc" id="L218">                a.getRegistroId(),</span>
-<span class="nc" id="L219">                a.getDatosAnteriores(),</span>
-<span class="nc" id="L220">                a.getDatosNuevos()</span>
+<span class="nc" id="L228">        return new AuditoriaResumen(</span>
+<span class="nc" id="L229">                a.getId(),</span>
+<span class="nc" id="L230">                a.getFechaHora(),</span>
+<span class="nc" id="L231">                a.getTabla(),</span>
+<span class="nc" id="L232">                a.getEsquema(),</span>
+<span class="nc" id="L233">                a.getOperacion(),</span>
+<span class="nc" id="L234">                a.getUsuarioApp(),</span>
+<span class="nc" id="L235">                a.getUsuarioBd(),</span>
+<span class="nc" id="L236">                a.getRegistroId(),</span>
+<span class="nc" id="L237">                a.getDatosAnteriores(),</span>
+<span class="nc" id="L238">                a.getDatosNuevos()</span>
         );
     }
 }

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LogActividad.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">com.uteq.asistente_academico.entity</a> &gt; <span class="el_source">LogActividad.java</span></div><h1>LogActividad.java</h1><pre class="source lang-java linenums">package com.uteq.asistente_academico.entity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import org.hibernate.annotations.Immutable;
+
+/**
+ * Fila de log_actividad, poblada exclusivamente por el script de carga
+ * masiva del Bloque ABD -- la app nunca inserta ni actualiza esto via
+ * JPA, igual que Auditoria. Solo mapea las columnas que hacen falta para
+ * GET /api/admin/log-actividad/resumen (conteo total y desglose por
+ * usuario); accion/detalle/fecha_hora/ip_origen no se usan ahi y no
+ * estan mapeadas.
+ */
+@Entity
+@Table(name = &quot;log_actividad&quot;)
+@Immutable
+<span class="nc" id="L20">public class LogActividad {</span>
+
+    @Id
+    private Long id;
+
+    @Column(name = &quot;id_usuario&quot;)
+    private Integer idUsuario;
+
+    public Long getId() {
+<span class="nc" id="L29">        return id;</span>
+    }
+
+    public Integer getIdUsuario() {
+<span class="nc" id="L33">        return idUsuario;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
